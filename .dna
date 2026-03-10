@@ -62,15 +62,34 @@
     "README.md": {
       "type": "non-python",
       "extension": ".md",
-      "size_bytes": 1485,
-      "description": ""
+      "size_bytes": 3134,
+      "description": "",
+      "purpose": "Provides an overview, feature list, setup instructions, and usage examples for the AgentTrace project."
+    },
+    "sdk/python/example.py": {
+      "functions": {
+        "main": {
+          "signature": "main()",
+          "decorators": [],
+          "line": 4,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "time"
+      ],
+      "purpose": "Demonstrates how to use the AgentTrace SDK to log agent execution steps like reasoning, tool calls, and state changes."
     },
     "sdk/python/requirements.txt": {
       "type": "non-python",
       "extension": ".txt",
-      "size_bytes": 33,
+      "size_bytes": 48,
       "description": "",
-      "purpose": "Lists the Python package dependencies required to install and use the AgentTrace SDK."
+      "purpose": "Specifies the required Python dependencies and their minimum versions for installing and running the SDK and its tests."
     },
     "sdk/python/agent_trace/models.py": {
       "functions": {},
@@ -222,7 +241,7 @@
           "class_attributes": {
             "content": "str"
           },
-          "line": 10,
+          "line": 13,
           "description": "Defines a simple data structure for logging an agent's textual reasoning or thought process."
         },
         "ToolCall": {
@@ -235,7 +254,7 @@
             "tool_name": "str",
             "arguments": "Dict[str, Any]"
           },
-          "line": 14,
+          "line": 17,
           "description": "Defines a simple data structure for logging the name and arguments of a tool an agent intends to call."
         },
         "ToolResult": {
@@ -249,7 +268,7 @@
             "result": "Any",
             "is_error": "bool"
           },
-          "line": 19,
+          "line": 22,
           "description": "Defines a simple data structure for logging the outcome of an executed tool."
         },
         "StateChange": {
@@ -262,7 +281,7 @@
             "before": "Dict[str, Any]",
             "after": "Dict[str, Any]"
           },
-          "line": 25,
+          "line": 28,
           "description": "Defines a simple data structure for logging the before and after states of an agent."
         },
         "Tracer": {
@@ -272,31 +291,226 @@
             "__init__": {
               "signature": "__init__(self, project_name: str, endpoint: str='http://localhost:3000/api/trace')",
               "decorators": [],
-              "line": 32,
+              "line": 35,
+              "description": ""
+            },
+            "_worker": {
+              "signature": "_worker(self)",
+              "decorators": [],
+              "line": 46,
               "description": ""
             },
             "log_event": {
               "signature": "log_event(self, agent: str, event_type: str, data: EventData)",
               "decorators": [],
-              "line": 36,
+              "line": 62,
+              "description": ""
+            },
+            "flush": {
+              "signature": "flush(self)",
+              "decorators": [],
+              "line": 83,
               "description": ""
             }
           },
           "class_attributes": {},
-          "line": 31,
+          "line": 34,
           "description": "A client class used to format and transmit agent execution events to a remote tracing server."
         }
       },
       "constants": {},
       "internal_imports": [],
       "external_imports": [
+        "atexit",
         "dataclasses",
         "logging",
+        "queue",
         "requests",
+        "threading",
         "time",
         "typing"
       ],
-      "purpose": "Provides the main tracing client and simplified event data classes for logging agent operations to a remote server."
+      "purpose": "Implements the Python SDK's Tracer client and dataclasses for asynchronously logging agent events to the local server."
+    },
+    "sdk/python/tests/test_models.py": {
+      "functions": {
+        "test_reasoning_data_serialization": {
+          "signature": "test_reasoning_data_serialization()",
+          "decorators": [],
+          "line": 13,
+          "description": ""
+        },
+        "test_tool_call_data_serialization": {
+          "signature": "test_tool_call_data_serialization()",
+          "decorators": [],
+          "line": 22,
+          "description": ""
+        },
+        "test_tool_result_data_serialization": {
+          "signature": "test_tool_result_data_serialization()",
+          "decorators": [],
+          "line": 31,
+          "description": ""
+        },
+        "test_state_change_data_serialization": {
+          "signature": "test_state_change_data_serialization()",
+          "decorators": [],
+          "line": 41,
+          "description": ""
+        },
+        "test_agent_event_serialization": {
+          "signature": "test_agent_event_serialization()",
+          "decorators": [],
+          "line": 55,
+          "description": ""
+        },
+        "test_tracer_async_enqueueing": {
+          "signature": "test_tracer_async_enqueueing(mock_post)",
+          "decorators": [
+            "patch('requests.post')"
+          ],
+          "line": 74,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "pytest",
+        "unittest"
+      ],
+      "purpose": "Provides unit tests specifically validating the dictionary serialization logic of various agent event data models."
+    },
+    "sdk/python/tests/test_tracer.py": {
+      "functions": {
+        "test_reasoning_data_serialization": {
+          "signature": "test_reasoning_data_serialization()",
+          "decorators": [],
+          "line": 16,
+          "description": ""
+        },
+        "test_tool_call_data_serialization": {
+          "signature": "test_tool_call_data_serialization()",
+          "decorators": [],
+          "line": 22,
+          "description": ""
+        },
+        "test_tool_result_data_serialization": {
+          "signature": "test_tool_result_data_serialization()",
+          "decorators": [],
+          "line": 28,
+          "description": ""
+        },
+        "test_state_change_data_serialization": {
+          "signature": "test_state_change_data_serialization()",
+          "decorators": [],
+          "line": 38,
+          "description": ""
+        },
+        "test_agent_event_serialization": {
+          "signature": "test_agent_event_serialization()",
+          "decorators": [],
+          "line": 52,
+          "description": ""
+        },
+        "test_tracer_enqueue_and_flush": {
+          "signature": "test_tracer_enqueue_and_flush()",
+          "decorators": [],
+          "line": 69,
+          "description": ""
+        },
+        "test_tracer_handles_post_error": {
+          "signature": "test_tracer_handles_post_error()",
+          "decorators": [],
+          "line": 95,
+          "description": ""
+        },
+        "test_tracer_queue_state": {
+          "signature": "test_tracer_queue_state()",
+          "decorators": [],
+          "line": 113,
+          "description": ""
+        },
+        "test_tracer_dict_data": {
+          "signature": "test_tracer_dict_data()",
+          "decorators": [],
+          "line": 138,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "pytest",
+        "time",
+        "unittest"
+      ],
+      "purpose": "Tests the background functionality of the Tracer class, including event queueing, thread flushing, and payload formatting."
+    },
+    "sdk/python/tests/__init__.py": {
+      "functions": {
+        "test_reasoning_data_serialization": {
+          "signature": "test_reasoning_data_serialization()",
+          "decorators": [],
+          "line": 17,
+          "description": ""
+        },
+        "test_tool_call_data_serialization": {
+          "signature": "test_tool_call_data_serialization()",
+          "decorators": [],
+          "line": 28,
+          "description": ""
+        },
+        "test_tool_result_data_serialization": {
+          "signature": "test_tool_result_data_serialization()",
+          "decorators": [],
+          "line": 38,
+          "description": ""
+        },
+        "test_state_change_data_serialization": {
+          "signature": "test_state_change_data_serialization()",
+          "decorators": [],
+          "line": 52,
+          "description": ""
+        },
+        "test_agent_event_serialization": {
+          "signature": "test_agent_event_serialization()",
+          "decorators": [],
+          "line": 70,
+          "description": ""
+        },
+        "test_tracer_async_enqueueing": {
+          "signature": "test_tracer_async_enqueueing(mock_post)",
+          "decorators": [
+            "patch('agent_trace.requests.post')"
+          ],
+          "line": 95,
+          "description": ""
+        },
+        "test_tracer_error_handling": {
+          "signature": "test_tracer_error_handling(mock_post)",
+          "decorators": [
+            "patch('agent_trace.requests.post')"
+          ],
+          "line": 131,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "pytest",
+        "requests",
+        "unittest"
+      ],
+      "purpose": "Contains unit tests for the Python SDK, verifying model serialization and asynchronous tracer behavior."
     },
     "server/package.json": {
       "type": "non-python",

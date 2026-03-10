@@ -7,7 +7,7 @@
     "TypeScript",
     "Python"
   ],
-  "current_phase": "Define standardized schema models for agent events (reasoning, tool calls, state changes)",
+  "current_phase": "Complete Phase 1 by making the Python SDK non-blocking, adding unit tests, and creating usage documentation",
   "maturity_level": "early",
   "completed_milestones": [],
   "planned_next_steps": [
@@ -26,6 +26,21 @@
         ".dna"
       ],
       "requests_used": 7
+    },
+    {
+      "date": "2026-03-10",
+      "summary": "Complete Phase 1 by making the Python SDK non-blocking, adding unit tests, and creating usage documentation",
+      "files_changed": [
+        "sdk/python/agent_trace/__init__.py",
+        "sdk/python/tests/__init__.py",
+        "sdk/python/tests/test_models.py",
+        "sdk/python/tests/test_tracer.py",
+        "sdk/python/requirements.txt",
+        "sdk/python/example.py",
+        "README.md",
+        ".dna"
+      ],
+      "requests_used": 19
     }
   ],
   "open_questions": [],

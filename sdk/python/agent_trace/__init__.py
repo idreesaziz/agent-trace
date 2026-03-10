@@ -1,6 +1,9 @@
-import requests
-import time
+import atexit
 import logging
+import queue
+import threading
+import time
+import requests
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, Union
 
@@ -32,6 +35,29 @@ class Tracer:
     def __init__(self, project_name: str, endpoint: str = "http://localhost:3000/api/trace"):
         self.project_name = project_name
         self.endpoint = endpoint
+        
+        self._queue = queue.Queue()
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._worker, daemon=True)
+        self._thread.start()
+        
+        atexit.register(self.flush)
+
+    def _worker(self):
+        while not self._stop_event.is_set() or not self._queue.empty():
+            try:
+                payload = self._queue.get(timeout=0.1)
+                try:
+                    response = requests.post(self.endpoint, json=payload, timeout=2.0)
+                    response.raise_for_status()
+                except requests.exceptions.RequestException as e:
+                    logger.warning(f"AgentTrace warning: Could not send trace to {self.endpoint}. {e}")
+                except Exception as e:
+                    logger.warning(f"AgentTrace warning: Unexpected error while sending trace. {e}")
+                finally:
+                    self._queue.task_done()
+            except queue.Empty:
+                continue
 
     def log_event(self, agent: str, event_type: str, data: EventData):
         """
@@ -52,8 +78,12 @@ class Tracer:
             "data": parsed_data,
             "timestamp": time.time()
         }
-        try:
-            response = requests.post(self.endpoint, json=payload, timeout=2.0)
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            logger.warning(f"AgentTrace warning: Could not send trace to {self.endpoint}. {e}")
+        self._queue.put(payload)
+
+    def flush(self):
+        """
+        Signals the background worker to stop and waits for all pending traces to be sent.
+        """
+        self._stop_event.set()
+        if self._thread.is_alive():
+            self._thread.join(timeout=2.0)
