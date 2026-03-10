@@ -1,0 +1,21 @@
+{
+  "repo_name": "agent-trace",
+  "repo_url": "https://github.com/idreesaziz/agent-trace",
+  "created_date": "2026-03-10",
+  "project_description": "With the explosion of agent frameworks, developers struggle to debug where a swarm went wrong or why a specific tool was called. AgentTrace is a lightweight local server that ingests standardized logs from any agent framework and visualizes the reasoning chain, tool calls, and state transitions in a clean UI. It allows developers to step through an agent's thought process retrospectively across different libraries.",
+  "tech_stack": [
+    "TypeScript",
+    "Python"
+  ],
+  "current_phase": "initial scaffold",
+  "maturity_level": "early",
+  "completed_milestones": [],
+  "planned_next_steps": [
+    "flesh out core functionality",
+    "add README with usage instructions",
+    "add basic tests"
+  ],
+  "session_log": [],
+  "open_questions": [],
+  "decisions_log": []
+}

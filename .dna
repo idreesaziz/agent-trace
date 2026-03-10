@@ -1,0 +1,127 @@
+{
+  "project": {
+    "name": "agent-trace",
+    "purpose": "With the explosion of agent frameworks, developers struggle to debug where a swarm went wrong or why a specific tool was called. AgentTrace is a lightweight local server that ingests standardized logs from any agent framework and visualizes the reasoning chain, tool calls, and state transitions in a clean UI. It allows developers to step through an agent's thought process retrospectively across different libraries.",
+    "tech_stack": [
+      "TypeScript",
+      "Python"
+    ],
+    "roadmap": [
+      {
+        "phase": 1,
+        "title": "Standardized Schema & Python SDK",
+        "description": "Define the universal JSON schema for agent events (reasoning, tool calls, state changes). Build a lightweight, non-blocking Python SDK to structure and emit these events.",
+        "status": "in-progress"
+      },
+      {
+        "phase": 2,
+        "title": "Local Ingestion Server",
+        "description": "Develop a lightweight TypeScript local server utilizing a local SQLite database to ingest, validate, and persist trace payloads from the Python SDK.",
+        "status": "not-started"
+      },
+      {
+        "phase": 3,
+        "title": "Frontend Skeleton & Trace List",
+        "description": "Set up the React/TypeScript frontend. Build the main dashboard to list ingested agent runs, display high-level metadata, and provide routing to individual trace views.",
+        "status": "not-started"
+      },
+      {
+        "phase": 4,
+        "title": "Reasoning Chain & Tool Call Visualization",
+        "description": "Implement a tree or waterfall visualization for individual traces. Render LLM prompts, reasoning steps, and tool execution inputs/outputs in a clear, collapsible interface.",
+        "status": "not-started"
+      },
+      {
+        "phase": 5,
+        "title": "State Transitions & Step-Through Debugger",
+        "description": "Add an interactive timeline scrubber to the UI. Allow developers to step forward and backward through a run to view state diffs and context windows at any exact moment.",
+        "status": "not-started"
+      },
+      {
+        "phase": 6,
+        "title": "Drop-in Framework Integrations",
+        "description": "Build middleware and callback handlers in Python to automatically capture and format traces from popular frameworks (LangChain, CrewAI, AutoGen) with minimal manual instrumentation.",
+        "status": "not-started"
+      },
+      {
+        "phase": 7,
+        "title": "Advanced Search, Export & UX Polish",
+        "description": "Implement full-text search across agent logs, filtering by tool/outcome, and UX polish. Add import/export functionality so developers can share trace files for collaborative debugging.",
+        "status": "not-started"
+      }
+    ],
+    "current_phase": 1
+  },
+  "files": {
+    ".gitignore": {
+      "type": "non-python",
+      "extension": "",
+      "size_bytes": 68,
+      "description": ""
+    },
+    "README.md": {
+      "type": "non-python",
+      "extension": ".md",
+      "size_bytes": 1485,
+      "description": ""
+    },
+    "sdk/python/requirements.txt": {
+      "type": "non-python",
+      "extension": ".txt",
+      "size_bytes": 18,
+      "description": ""
+    },
+    "sdk/python/agent_trace/__init__.py": {
+      "functions": {},
+      "classes": {
+        "Tracer": {
+          "bases": [],
+          "decorators": [],
+          "methods": {
+            "__init__": {
+              "signature": "__init__(self, project_name: str, endpoint: str='http://localhost:3000/api/trace')",
+              "decorators": [],
+              "line": 8,
+              "description": ""
+            },
+            "log_event": {
+              "signature": "log_event(self, agent: str, event_type: str, data: dict)",
+              "decorators": [],
+              "line": 12,
+              "description": ""
+            }
+          },
+          "class_attributes": {},
+          "line": 7,
+          "description": "A client class used to format and transmit agent execution events to a remote tracing server."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "logging",
+        "requests",
+        "time"
+      ],
+      "purpose": "This file provides a Python SDK client for logging agent execution events to an AgentTrace server."
+    },
+    "server/package.json": {
+      "type": "non-python",
+      "extension": ".json",
+      "size_bytes": 517,
+      "description": ""
+    },
+    "server/tsconfig.json": {
+      "type": "non-python",
+      "extension": ".json",
+      "size_bytes": 261,
+      "description": ""
+    },
+    "server/src/index.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 953,
+      "description": ""
+    }
+  }
+}
