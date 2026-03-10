@@ -1,26 +1,55 @@
 import requests
 import time
 import logging
+from dataclasses import dataclass, asdict
+from typing import Any, Dict, Union
 
 logger = logging.getLogger(__name__)
+
+@dataclass
+class Reasoning:
+    content: str
+
+@dataclass
+class ToolCall:
+    tool_name: str
+    arguments: Dict[str, Any]
+
+@dataclass
+class ToolResult:
+    tool_name: str
+    result: Any
+    is_error: bool = False
+
+@dataclass
+class StateChange:
+    before: Dict[str, Any]
+    after: Dict[str, Any]
+
+EventData = Union[Reasoning, ToolCall, ToolResult, StateChange, Dict[str, Any]]
 
 class Tracer:
     def __init__(self, project_name: str, endpoint: str = "http://localhost:3000/api/trace"):
         self.project_name = project_name
         self.endpoint = endpoint
 
-    def log_event(self, agent: str, event_type: str, data: dict):
+    def log_event(self, agent: str, event_type: str, data: EventData):
         """
         Logs an event to the local AgentTrace server.
         :param agent: Name or identifier of the agent.
-        :param event_type: Type of the event (e.g., 'thought', 'tool_call', 'tool_result', 'message').
-        :param data: Dictionary containing arbitrary contextual data.
+        :param event_type: Type of the event (e.g., 'thought', 'tool_call', 'tool_result', 'state_change').
+        :param data: Dataclass or dictionary containing contextual data.
         """
+        if hasattr(data, "__dataclass_fields__"):
+            parsed_data = asdict(data)
+        else:
+            parsed_data = data
+
         payload = {
             "project_name": self.project_name,
             "agent": agent,
             "event_type": event_type,
-            "data": data,
+            "data": parsed_data,
             "timestamp": time.time()
         }
         try:

@@ -68,12 +68,203 @@
     "sdk/python/requirements.txt": {
       "type": "non-python",
       "extension": ".txt",
-      "size_bytes": 18,
-      "description": ""
+      "size_bytes": 33,
+      "description": "",
+      "purpose": "Lists the Python package dependencies required to install and use the AgentTrace SDK."
+    },
+    "sdk/python/agent_trace/models.py": {
+      "functions": {},
+      "classes": {
+        "EventType": {
+          "bases": [
+            "str",
+            "Enum"
+          ],
+          "decorators": [],
+          "methods": {},
+          "class_attributes": {},
+          "line": 7,
+          "description": "Enumerates the standard types of events that can occur during an agent's execution."
+        },
+        "ReasoningData": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {
+            "to_dict": {
+              "signature": "to_dict(self) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 22,
+              "description": ""
+            }
+          },
+          "class_attributes": {
+            "content": "str",
+            "prompt": "Optional[str]",
+            "model": "Optional[str]"
+          },
+          "line": 16,
+          "description": "Represents the schema for logging an agent's reasoning or internal thought processes."
+        },
+        "ToolCallData": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {
+            "to_dict": {
+              "signature": "to_dict(self) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 32,
+              "description": ""
+            }
+          },
+          "class_attributes": {
+            "tool_name": "str",
+            "arguments": "Dict[str, Any]",
+            "tool_call_id": "Optional[str]"
+          },
+          "line": 26,
+          "description": "Represents the schema for an agent's intent to execute a specific tool."
+        },
+        "ToolResultData": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {
+            "to_dict": {
+              "signature": "to_dict(self) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 43,
+              "description": ""
+            }
+          },
+          "class_attributes": {
+            "tool_name": "str",
+            "result": "Any",
+            "tool_call_id": "Optional[str]",
+            "is_error": "bool"
+          },
+          "line": 36,
+          "description": "Represents the schema for the output or outcome of an executed tool."
+        },
+        "StateChangeData": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {
+            "to_dict": {
+              "signature": "to_dict(self) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 54,
+              "description": ""
+            }
+          },
+          "class_attributes": {
+            "keys_changed": "List[str]",
+            "old_state": "Dict[str, Any]",
+            "new_state": "Dict[str, Any]",
+            "reason": "Optional[str]"
+          },
+          "line": 47,
+          "description": "Represents the schema for tracking transitions in the internal state of an agent."
+        },
+        "AgentEvent": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {
+            "to_dict": {
+              "signature": "to_dict(self) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 69,
+              "description": ""
+            }
+          },
+          "class_attributes": {
+            "project_name": "str",
+            "agent": "str",
+            "event_type": "Union[EventType, str]",
+            "data": "Dict[str, Any]",
+            "timestamp": "float",
+            "event_id": "str",
+            "run_id": "Optional[str]",
+            "parent_id": "Optional[str]"
+          },
+          "line": 58,
+          "description": "Serves as the standardized envelope containing the core details of any event to be ingested by the tracing server."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "dataclasses",
+        "enum",
+        "time",
+        "typing",
+        "uuid"
+      ],
+      "purpose": "Defines the data structures and enumerations used to represent and serialize different types of agent events for tracing."
     },
     "sdk/python/agent_trace/__init__.py": {
       "functions": {},
       "classes": {
+        "Reasoning": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {},
+          "class_attributes": {
+            "content": "str"
+          },
+          "line": 10,
+          "description": "Defines a simple data structure for logging an agent's textual reasoning or thought process."
+        },
+        "ToolCall": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {},
+          "class_attributes": {
+            "tool_name": "str",
+            "arguments": "Dict[str, Any]"
+          },
+          "line": 14,
+          "description": "Defines a simple data structure for logging the name and arguments of a tool an agent intends to call."
+        },
+        "ToolResult": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {},
+          "class_attributes": {
+            "tool_name": "str",
+            "result": "Any",
+            "is_error": "bool"
+          },
+          "line": 19,
+          "description": "Defines a simple data structure for logging the outcome of an executed tool."
+        },
+        "StateChange": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {},
+          "class_attributes": {
+            "before": "Dict[str, Any]",
+            "after": "Dict[str, Any]"
+          },
+          "line": 25,
+          "description": "Defines a simple data structure for logging the before and after states of an agent."
+        },
         "Tracer": {
           "bases": [],
           "decorators": [],
@@ -81,29 +272,31 @@
             "__init__": {
               "signature": "__init__(self, project_name: str, endpoint: str='http://localhost:3000/api/trace')",
               "decorators": [],
-              "line": 8,
+              "line": 32,
               "description": ""
             },
             "log_event": {
-              "signature": "log_event(self, agent: str, event_type: str, data: dict)",
+              "signature": "log_event(self, agent: str, event_type: str, data: EventData)",
               "decorators": [],
-              "line": 12,
+              "line": 36,
               "description": ""
             }
           },
           "class_attributes": {},
-          "line": 7,
+          "line": 31,
           "description": "A client class used to format and transmit agent execution events to a remote tracing server."
         }
       },
       "constants": {},
       "internal_imports": [],
       "external_imports": [
+        "dataclasses",
         "logging",
         "requests",
-        "time"
+        "time",
+        "typing"
       ],
-      "purpose": "This file provides a Python SDK client for logging agent execution events to an AgentTrace server."
+      "purpose": "Provides the main tracing client and simplified event data classes for logging agent operations to a remote server."
     },
     "server/package.json": {
       "type": "non-python",
