@@ -50,4 +50,43 @@ export const agentEventSchema = z.object({
 
 export type AgentEvent = z.infer<typeof agentEventSchema>;
 
+export function getGroupedRuns(options: { limit?: number; offset?: number; project_name?: string } = {}) {
+  const limit = options.limit ?? 100;
+  const offset = options.offset ?? 0;
+  
+  let queryStr = `
+    SELECT 
+      run_id,
+      project_name,
+      COUNT(*) as total_events,
+      MIN(timestamp) as start_time,
+      MAX(timestamp) as end_time
+    FROM events
+    WHERE run_id IS NOT NULL
+  `;
+  const params: any[] = [];
+
+  if (options.project_name) {
+    queryStr += ' AND project_name = ?';
+    params.push(options.project_name);
+  }
+
+  queryStr += `
+    GROUP BY run_id, project_name
+    ORDER BY MAX(timestamp) DESC
+    LIMIT ? OFFSET ?
+  `;
+  params.push(limit, offset);
+
+  return db.prepare(queryStr).all(...params);
+}
+
+export function getTraceEvents(runId: string) {
+  return db.prepare(`
+    SELECT * FROM events
+    WHERE run_id = ?
+    ORDER BY timestamp ASC
+  `).all(runId);
+}
+
 export default db;

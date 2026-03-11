@@ -535,16 +535,16 @@
     "server/src/db.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 1632,
+      "size_bytes": 2569,
       "description": "",
-      "purpose": "Initializes the SQLite database using better-sqlite3 and provides a function to set up the events table and its indexes."
+      "purpose": "Manages the SQLite database connection, schema initialization, and queries for storing and retrieving agent trace events."
     },
     "server/src/index.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 5669,
+      "size_bytes": 6058,
       "description": "",
-      "purpose": "Bootstraps the Express server, initializes the SQLite database, and defines Zod validation schemas for agent events."
+      "purpose": "Serves as the Express server entry point, defining Zod validation schemas for various event types and initializing the application environment."
     },
     "server/src/schema.ts": {
       "type": "non-python",
@@ -556,9 +556,9 @@
     "server/tests/server.test.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 6936,
+      "size_bytes": 8621,
       "description": "",
-      "purpose": "Implements integration tests for the AgentTrace Server API using Supertest and an in-memory SQLite database."
+      "purpose": "Contains integration tests for the Express server's API endpoints using Supertest and an isolated in-memory SQLite database."
     }
   }
 }

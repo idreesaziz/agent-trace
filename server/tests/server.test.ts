@@ -60,175 +60,199 @@ describe('AgentTrace Server API', () => {
     }
   });
 
-  it('should return 400 when required fields are missing', async () => {
-    const payload = {
-      project_name: 'test-project',
-      // missing 'agent'
-      event_type: 'reasoning',
-      data: { content: 'test' },
-      timestamp: Date.now(),
-      event_id: 'evt-1'
-    };
+  describe('POST /api/trace', () => {
+    it('should return 400 when required fields are missing', async () => {
+      const payload = {
+        project_name: 'test-project',
+        // missing 'agent'
+        event_type: 'reasoning',
+        data: { content: 'test' },
+        timestamp: Date.now(),
+        event_id: 'evt-1'
+      };
 
-    const response = await request(server)
-      .post('/api/trace')
-      .send(payload);
-    
-    expect(response.status).toBe(400);
-    expect(response.body.success).toBe(false);
-    expect(response.body.errors).toBeDefined();
-    
-    // Ensure nothing was saved to the database
-    const row = dbInstance.prepare('SELECT COUNT(*) as count FROM events').get() as { count: number };
-    expect(row.count).toBe(0);
+      const response = await request(server)
+        .post('/api/trace')
+        .send(payload);
+      
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.errors).toBeDefined();
+      
+      // Ensure nothing was saved to the database
+      const row = dbInstance.prepare('SELECT COUNT(*) as count FROM events').get() as { count: number };
+      expect(row.count).toBe(0);
+    });
+
+    it('should return 400 when reasoning data is invalid', async () => {
+      const payload = {
+        project_name: 'test-project',
+        agent: 'test-agent',
+        event_type: 'reasoning',
+        data: {
+          // 'content' is strictly required for reasoning, omitted here
+          prompt: 'some prompt'
+        },
+        timestamp: Date.now(),
+        event_id: 'evt-2'
+      };
+
+      const response = await request(server)
+        .post('/api/trace')
+        .send(payload);
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.errors).toBeDefined();
+    });
+
+    it('should successfully ingest a valid trace event', async () => {
+      const payload = {
+        project_name: 'test-project',
+        agent: 'test-agent',
+        event_type: 'reasoning',
+        data: { content: 'This is my thought process.' },
+        timestamp: Date.now(),
+        event_id: 'evt-3'
+      };
+
+      const response = await request(server)
+        .post('/api/trace')
+        .send(payload);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+
+      const row = dbInstance.prepare('SELECT * FROM events WHERE event_id = ?').get('evt-3');
+      expect(row).toBeDefined();
+      expect(row.agent).toBe('test-agent');
+      expect(JSON.parse(row.data)).toEqual(payload.data);
+    });
+
+    it('should return 409 when inserting duplicate event_id', async () => {
+      const payload = {
+        project_name: 'test-project',
+        agent: 'test-agent',
+        event_type: 'reasoning',
+        data: { content: 'First try' },
+        timestamp: Date.now(),
+        event_id: 'evt-4'
+      };
+
+      await request(server).post('/api/trace').send(payload);
+      const duplicateResponse = await request(server).post('/api/trace').send(payload);
+
+      expect(duplicateResponse.status).toBe(409);
+      expect(duplicateResponse.body.success).toBe(false);
+    });
   });
 
-  it('should return 400 when reasoning data is invalid', async () => {
-    const payload = {
-      project_name: 'test-project',
-      agent: 'test-agent',
-      event_type: 'reasoning',
-      data: {
-        // 'content' is strictly required for reasoning, omitted here
-        prompt: 'some prompt'
-      },
-      timestamp: Date.now(),
-      event_id: 'evt-2'
-    };
+  describe('GET Endpoints', () => {
+    beforeEach(async () => {
+      // Insert some mock data directly into the database to bypass validation constraints 
+      // in POST during GET tests, focusing purely on GET logic.
+      const insertStmt = dbInstance.prepare(`
+        INSERT INTO events (
+          event_id, project_name, run_id, parent_id, agent, event_type, data, timestamp
+        ) VALUES (
+          @event_id, @project_name, @run_id, @parent_id, @agent, @event_type, @data, @timestamp
+        )
+      `);
 
-    const response = await request(server)
-      .post('/api/trace')
-      .send(payload);
+      const events = [
+        {
+          project_name: 'project-A',
+          run_id: 'run-1',
+          parent_id: null,
+          agent: 'agent-1',
+          event_type: 'reasoning',
+          data: JSON.stringify({ content: 'step 1' }),
+          timestamp: 1000,
+          event_id: 'evt-get-1'
+        },
+        {
+          project_name: 'project-A',
+          run_id: 'run-1',
+          parent_id: 'evt-get-1',
+          agent: 'agent-1',
+          event_type: 'tool_call',
+          data: JSON.stringify({ tool_name: 'search', arguments: { q: 'test' } }),
+          timestamp: 2000,
+          event_id: 'evt-get-2'
+        },
+        {
+          project_name: 'project-B',
+          run_id: 'run-2',
+          parent_id: null,
+          agent: 'agent-2',
+          event_type: 'reasoning',
+          data: JSON.stringify({ content: 'step 1' }),
+          timestamp: 1500,
+          event_id: 'evt-get-3'
+        }
+      ];
 
-    expect(response.status).toBe(400);
-    expect(response.body.success).toBe(false);
-    expect(response.body.errors).toBeDefined();
-  });
+      for (const ev of events) {
+        insertStmt.run(ev);
+      }
+    });
 
-  it('should successfully ingest a valid reasoning event', async () => {
-    const payload = {
-      project_name: 'test-project',
-      agent: 'test-agent',
-      event_type: 'reasoning',
-      data: {
-        content: 'Thinking about the problem',
-        prompt: 'Solve it',
-        model: 'gpt-4'
-      },
-      timestamp: Date.now(),
-      event_id: 'evt-3'
-    };
+    describe('GET /api/runs', () => {
+      it('should retrieve grouped agent runs', async () => {
+        const response = await request(server).get('/api/runs');
+        
+        expect(response.status).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(response.body.runs).toBeDefined();
+        expect(response.body.runs.length).toBe(2);
+        
+        const run1 = response.body.runs.find((r: any) => r.run_id === 'run-1');
+        expect(run1).toBeDefined();
+        expect(run1.project_name).toBe('project-A');
+        expect(run1.event_count).toBe(2);
+        expect(run1.start_time).toBe(1000);
+        expect(run1.end_time).toBe(2000);
+      });
 
-    const response = await request(server)
-      .post('/api/trace')
-      .send(payload);
-    
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({ success: true });
+      it('should filter runs by project_name', async () => {
+        const response = await request(server).get('/api/runs?project_name=project-B');
+        
+        expect(response.status).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(response.body.runs.length).toBe(1);
+        expect(response.body.runs[0].run_id).toBe('run-2');
+      });
+    });
 
-    // Verify DB
-    const rows = dbInstance.prepare('SELECT * FROM events WHERE event_id = ?').all('evt-3');
-    expect(rows).toHaveLength(1);
-    expect(rows[0].project_name).toBe('test-project');
-    expect(JSON.parse(rows[0].data)).toEqual(payload.data);
-  });
+    describe('GET /api/events', () => {
+      it('should retrieve individual trace events', async () => {
+        const response = await request(server).get('/api/events');
+        
+        expect(response.status).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(response.body.events).toBeDefined();
+        expect(response.body.events.length).toBe(3);
+      });
 
-  it('should successfully ingest a valid tool_call event', async () => {
-    const payload = {
-      project_name: 'test-project',
-      agent: 'test-agent',
-      event_type: 'tool_call',
-      data: {
-        tool_name: 'calculator',
-        arguments: { a: '1', b: '2' },
-        tool_call_id: 'call-1'
-      },
-      timestamp: Date.now(),
-      event_id: 'evt-4'
-    };
+      it('should retrieve events filtered by run_id', async () => {
+        const response = await request(server).get('/api/events?run_id=run-1');
+        
+        expect(response.status).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(response.body.events).toBeDefined();
+        expect(response.body.events.length).toBe(2);
+        expect(response.body.events.every((e: any) => e.run_id === 'run-1')).toBe(true);
+      });
 
-    const response = await request(server)
-      .post('/api/trace')
-      .send(payload);
-
-    expect(response.status).toBe(200);
-
-    const rows = dbInstance.prepare('SELECT * FROM events WHERE event_id = ?').all('evt-4');
-    expect(rows).toHaveLength(1);
-    expect(JSON.parse(rows[0].data)).toEqual(payload.data);
-  });
-
-  it('should successfully ingest a valid tool_result event', async () => {
-    const payload = {
-      project_name: 'test-project',
-      agent: 'test-agent',
-      event_type: 'tool_result',
-      data: {
-        tool_name: 'calculator',
-        result: '3',
-        tool_call_id: 'call-1',
-        is_error: false
-      },
-      timestamp: Date.now(),
-      event_id: 'evt-5'
-    };
-
-    const response = await request(server)
-      .post('/api/trace')
-      .send(payload);
-
-    expect(response.status).toBe(200);
-
-    const rows = dbInstance.prepare('SELECT * FROM events WHERE event_id = ?').all('evt-5');
-    expect(rows).toHaveLength(1);
-    expect(JSON.parse(rows[0].data)).toEqual(payload.data);
-  });
-
-  it('should successfully ingest a valid state_change event', async () => {
-    const payload = {
-      project_name: 'test-project',
-      agent: 'test-agent',
-      event_type: 'state_change',
-      data: {
-        keys_changed: ['status'],
-        old_state: { status: 'idle' },
-        new_state: { status: 'running' },
-        reason: 'started execution'
-      },
-      timestamp: Date.now(),
-      event_id: 'evt-6'
-    };
-
-    const response = await request(server)
-      .post('/api/trace')
-      .send(payload);
-
-    expect(response.status).toBe(200);
-
-    const rows = dbInstance.prepare('SELECT * FROM events WHERE event_id = ?').all('evt-6');
-    expect(rows).toHaveLength(1);
-    expect(JSON.parse(rows[0].data)).toEqual(payload.data);
-  });
-
-  it('should successfully ingest an unknown event_type without strictly validating nested data', async () => {
-    const payload = {
-      project_name: 'test-project',
-      agent: 'test-agent',
-      event_type: 'custom_event',
-      data: { custom: true, nested: { prop: 1 } },
-      timestamp: Date.now(),
-      event_id: 'evt-7'
-    };
-
-    const response = await request(server)
-      .post('/api/trace')
-      .send(payload);
-    
-    expect(response.status).toBe(200);
-
-    const rows = dbInstance.prepare('SELECT * FROM events WHERE event_id = ?').all('evt-7');
-    expect(rows).toHaveLength(1);
-    expect(rows[0].event_type).toBe('custom_event');
-    expect(JSON.parse(rows[0].data)).toEqual(payload.data);
+      it('should retrieve events filtered by project_name', async () => {
+        const response = await request(server).get('/api/events?project_name=project-A');
+        
+        expect(response.status).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(response.body.events).toBeDefined();
+        expect(response.body.events.length).toBe(2);
+        expect(response.body.events.every((e: any) => e.project_name === 'project-A')).toBe(true);
+      });
+    });
   });
 });

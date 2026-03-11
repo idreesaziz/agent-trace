@@ -100,44 +100,38 @@ export function initDb() {
 // Initialize the SQLite database
 initDb();
 
-// --- Express Server ---
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
-
-const insertEventStmt = db.prepare(`
-  INSERT INTO events (
-    event_id,
-    project_name,
-    run_id,
-    parent_id,
-    agent,
-    event_type,
-    data,
-    timestamp
-  ) VALUES (
-    @event_id,
-    @project_name,
-    @run_id,
-    @parent_id,
-    @agent,
-    @event_type,
-    @data,
-    @timestamp
-  )
-`);
+app.use(express.json({ limit: '50mb' }));
 
 app.post('/api/trace', (req, res) => {
   try {
     const payload = AgentEventSchema.parse(req.body);
-    
-    insertEventStmt.run({
+
+    if (payload.event_type === 'reasoning') {
+      ReasoningDataSchema.parse(payload.data);
+    } else if (payload.event_type === 'tool_call') {
+      ToolCallDataSchema.parse(payload.data);
+    } else if (payload.event_type === 'tool_result') {
+      ToolResultDataSchema.parse(payload.data);
+    } else if (payload.event_type === 'state_change') {
+      StateChangeDataSchema.parse(payload.data);
+    }
+
+    const stmt = db.prepare(`
+      INSERT INTO events (
+        event_id, project_name, run_id, parent_id, agent, event_type, data, timestamp
+      ) VALUES (
+        @event_id, @project_name, @run_id, @parent_id, @agent, @event_type, @data, @timestamp
+      )
+    `);
+
+    stmt.run({
       event_id: payload.event_id,
       project_name: payload.project_name,
-      run_id: payload.run_id ?? null,
-      parent_id: payload.parent_id ?? null,
+      run_id: payload.run_id || null,
+      parent_id: payload.parent_id || null,
       agent: payload.agent,
       event_type: payload.event_type,
       data: JSON.stringify(payload.data),
@@ -147,53 +141,62 @@ app.post('/api/trace', (req, res) => {
     res.status(200).json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      res.status(400).json({ success: false, errors: error.errors });
-    } else if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
-      res.status(409).json({ success: false, error: 'Event ID already exists' });
-    } else {
-      console.error('Error inserting event:', error);
-      res.status(500).json({ success: false, error: 'Internal server error' });
+      return res.status(400).json({ success: false, errors: error.errors });
     }
-  }
-});
-
-app.get('/api/events', (req, res) => {
-  try {
-    const { project_name, run_id, limit = '100', offset = '0' } = req.query;
-    
-    let queryStr = 'SELECT * FROM events WHERE 1=1';
-    const params: any[] = [];
-
-    if (project_name) {
-      queryStr += ' AND project_name = ?';
-      params.push(project_name);
-    }
-    
-    if (run_id) {
-      queryStr += ' AND run_id = ?';
-      params.push(run_id);
-    }
-
-    queryStr += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
-    params.push(Number(limit), Number(offset));
-
-    const events = db.prepare(queryStr).all(...params);
-    res.status(200).json({ success: true, events });
-  } catch (error) {
-    console.error('Error fetching events:', error);
+    console.error('Error in /api/trace:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+app.get('/api/runs', (req, res) => {
+  try {
+    const stmt = db.prepare(`
+      SELECT 
+        run_id,
+        project_name,
+        MIN(timestamp) as start_time,
+        MAX(timestamp) as end_time,
+        COUNT(*) as event_count,
+        COUNT(DISTINCT agent) as agent_count
+      FROM events
+      GROUP BY run_id, project_name
+      ORDER BY start_time DESC
+    `);
+    
+    const runs = stmt.all();
+    res.status(200).json({ success: true, runs });
+  } catch (error) {
+    console.error('Error fetching runs:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
 });
 
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`AgentTrace server listening on port ${PORT}`);
-  });
-}
+app.get('/api/runs/:run_id/events', (req, res) => {
+  try {
+    const { run_id } = req.params;
+    
+    const stmt = db.prepare(`
+      SELECT *
+      FROM events
+      WHERE run_id = ?
+      ORDER BY timestamp ASC
+    `);
+    
+    const events = stmt.all(run_id).map((event: any) => ({
+      ...event,
+      data: JSON.parse(event.data)
+    }));
+    
+    res.status(200).json({ success: true, events });
+  } catch (error) {
+    console.error('Error fetching run events:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
 
-// Export app and db for testing
-export { app, db };
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`AgentTrace server running on port ${PORT}`);
+});
+
+export default app;
