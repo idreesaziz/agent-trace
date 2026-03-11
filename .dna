@@ -512,12 +512,19 @@
       ],
       "purpose": "Contains unit tests for the Python SDK, verifying model serialization and asynchronous tracer behavior."
     },
+    "server/jest.config.js": {
+      "type": "non-python",
+      "extension": ".js",
+      "size_bytes": 566,
+      "description": "",
+      "purpose": "Configures the Jest testing framework to run TypeScript tests in a Node.js environment."
+    },
     "server/package.json": {
       "type": "non-python",
       "extension": ".json",
-      "size_bytes": 611,
+      "size_bytes": 946,
       "description": "",
-      "purpose": "Defines the project metadata, NPM scripts, and dependencies required to build and run the AgentTrace Express server."
+      "purpose": "Defines the project metadata, dependencies, and NPM scripts for the AgentTrace server."
     },
     "server/tsconfig.json": {
       "type": "non-python",
@@ -535,9 +542,9 @@
     "server/src/index.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 4777,
+      "size_bytes": 5669,
       "description": "",
-      "purpose": "Serves as the main entry point for the Express server, declaring core Zod schemas and initializing the local SQLite database connection."
+      "purpose": "Bootstraps the Express server, initializes the SQLite database, and defines Zod validation schemas for agent events."
     },
     "server/src/schema.ts": {
       "type": "non-python",
@@ -545,6 +552,13 @@
       "size_bytes": 1745,
       "description": "",
       "purpose": "Defines Zod validation schemas and corresponding TypeScript types for various agent tracing events and payloads."
+    },
+    "server/tests/server.test.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 6936,
+      "description": "",
+      "purpose": "Implements integration tests for the AgentTrace Server API using Supertest and an in-memory SQLite database."
     }
   }
 }

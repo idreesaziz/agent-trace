@@ -65,13 +65,16 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const dbPath = path.join(dataDir, 'agent-trace.db');
+const isTestEnv = process.env.NODE_ENV === 'test';
+const dbPath = isTestEnv ? ':memory:' : path.join(dataDir, 'agent-trace.db');
 const db = new Database(dbPath);
 
 // Enable WAL mode for better concurrent performance
-db.pragma('journal_mode = WAL');
+if (!isTestEnv) {
+  db.pragma('journal_mode = WAL');
+}
 
-function initDb() {
+export function initDb() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS events (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,54 +105,95 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json());
+
+const insertEventStmt = db.prepare(`
+  INSERT INTO events (
+    event_id,
+    project_name,
+    run_id,
+    parent_id,
+    agent,
+    event_type,
+    data,
+    timestamp
+  ) VALUES (
+    @event_id,
+    @project_name,
+    @run_id,
+    @parent_id,
+    @agent,
+    @event_type,
+    @data,
+    @timestamp
+  )
+`);
 
 app.post('/api/trace', (req, res) => {
   try {
-    const trace = AgentEventSchema.parse(req.body);
-
-    // Validate and sanitize specific data payloads
-    switch (trace.event_type) {
-      case 'reasoning':
-        trace.data = ReasoningDataSchema.parse(trace.data);
-        break;
-      case 'tool_call':
-        trace.data = ToolCallDataSchema.parse(trace.data);
-        break;
-      case 'tool_result':
-        trace.data = ToolResultDataSchema.parse(trace.data);
-        break;
-      case 'state_change':
-        trace.data = StateChangeDataSchema.parse(trace.data);
-        break;
-    }
-
-    const stmt = db.prepare(`
-      INSERT INTO events (event_id, project_name, run_id, parent_id, agent, event_type, data, timestamp)
-      VALUES (@event_id, @project_name, @run_id, @parent_id, @agent, @event_type, @data, @timestamp)
-    `);
-
-    stmt.run({
-      event_id: trace.event_id,
-      project_name: trace.project_name,
-      run_id: trace.run_id || null,
-      parent_id: trace.parent_id || null,
-      agent: trace.agent,
-      event_type: trace.event_type,
-      data: JSON.stringify(trace.data),
-      timestamp: trace.timestamp
+    const payload = AgentEventSchema.parse(req.body);
+    
+    insertEventStmt.run({
+      event_id: payload.event_id,
+      project_name: payload.project_name,
+      run_id: payload.run_id ?? null,
+      parent_id: payload.parent_id ?? null,
+      agent: payload.agent,
+      event_type: payload.event_type,
+      data: JSON.stringify(payload.data),
+      timestamp: payload.timestamp
     });
 
     res.status(200).json({ success: true });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, errors: error.errors });
+      res.status(400).json({ success: false, errors: error.errors });
+    } else if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
+      res.status(409).json({ success: false, error: 'Event ID already exists' });
+    } else {
+      console.error('Error inserting event:', error);
+      res.status(500).json({ success: false, error: 'Internal server error' });
     }
-    console.error('Error inserting trace:', error);
+  }
+});
+
+app.get('/api/events', (req, res) => {
+  try {
+    const { project_name, run_id, limit = '100', offset = '0' } = req.query;
+    
+    let queryStr = 'SELECT * FROM events WHERE 1=1';
+    const params: any[] = [];
+
+    if (project_name) {
+      queryStr += ' AND project_name = ?';
+      params.push(project_name);
+    }
+    
+    if (run_id) {
+      queryStr += ' AND run_id = ?';
+      params.push(run_id);
+    }
+
+    queryStr += ' ORDER BY timestamp DESC LIMIT ? OFFSET ?';
+    params.push(Number(limit), Number(offset));
+
+    const events = db.prepare(queryStr).all(...params);
+    res.status(200).json({ success: true, events });
+  } catch (error) {
+    console.error('Error fetching events:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`AgentTrace server is running on port ${PORT}`);
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
 });
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`AgentTrace server listening on port ${PORT}`);
+  });
+}
+
+// Export app and db for testing
+export { app, db };
