@@ -515,8 +515,9 @@
     "server/package.json": {
       "type": "non-python",
       "extension": ".json",
-      "size_bytes": 517,
-      "description": ""
+      "size_bytes": 611,
+      "description": "",
+      "purpose": "Defines the project metadata, NPM scripts, and dependencies required to build and run the AgentTrace Express server."
     },
     "server/tsconfig.json": {
       "type": "non-python",
@@ -524,11 +525,26 @@
       "size_bytes": 261,
       "description": ""
     },
+    "server/src/db.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 1632,
+      "description": "",
+      "purpose": "Initializes the SQLite database using better-sqlite3 and provides a function to set up the events table and its indexes."
+    },
     "server/src/index.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 953,
-      "description": ""
+      "size_bytes": 4777,
+      "description": "",
+      "purpose": "Serves as the main entry point for the Express server, declaring core Zod schemas and initializing the local SQLite database connection."
+    },
+    "server/src/schema.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 1745,
+      "description": "",
+      "purpose": "Defines Zod validation schemas and corresponding TypeScript types for various agent tracing events and payloads."
     }
   }
 }
