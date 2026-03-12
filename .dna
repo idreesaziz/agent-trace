@@ -66,6 +66,76 @@
       "description": "",
       "purpose": "Provides an overview, feature list, setup instructions, and usage examples for the AgentTrace project."
     },
+    "frontend/index.html": {
+      "type": "non-python",
+      "extension": ".html",
+      "size_bytes": 409,
+      "description": "",
+      "purpose": "Serves as the main HTML entry point for the Vite + React frontend application."
+    },
+    "frontend/package.json": {
+      "type": "non-python",
+      "extension": ".json",
+      "size_bytes": 967,
+      "description": "",
+      "purpose": "Defines the frontend npm package dependencies, scripts, and configuration for a React/Vite/TypeScript project."
+    },
+    "frontend/tsconfig.json": {
+      "type": "non-python",
+      "extension": ".json",
+      "size_bytes": 756,
+      "description": "",
+      "purpose": "Configures TypeScript compiler options for the Vite/React frontend environment."
+    },
+    "frontend/vite.config.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 327,
+      "description": "",
+      "purpose": "Configures the Vite build tool, including the React plugin and local API proxying for development."
+    },
+    "frontend/src/api.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 3028,
+      "description": "",
+      "purpose": "Provides API client functions and TypeScript type definitions for fetching and normalizing trace events from the backend."
+    },
+    "frontend/src/App.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 407,
+      "description": "",
+      "purpose": "Defines the root React component establishing the application's client-side routing structure."
+    },
+    "frontend/src/main.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 9202,
+      "description": "",
+      "purpose": "Bootstraps the React application and defines an alternative API client and types for managing trace events."
+    },
+    "frontend/src/types.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 1016,
+      "description": "",
+      "purpose": "Centralizes TypeScript interfaces and types representing agent trace payloads, events, and runs."
+    },
+    "frontend/src/pages/Dashboard.css": {
+      "type": "non-python",
+      "extension": ".css",
+      "size_bytes": 118,
+      "description": "",
+      "purpose": "A blank stylesheet kept for structural legacy as styling has migrated to Tailwind CSS."
+    },
+    "frontend/src/pages/Dashboard.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 4939,
+      "description": "",
+      "purpose": "Provides a React page component that fetches, manages, and displays a summary table of aggregated agent trace runs."
+    },
     "sdk/python/example.py": {
       "functions": {
         "main": {
@@ -542,9 +612,9 @@
     "server/src/index.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 6058,
+      "size_bytes": 1139,
       "description": "",
-      "purpose": "Serves as the Express server entry point, defining Zod validation schemas for various event types and initializing the application environment."
+      "purpose": "The main Express server application that initializes the database, exposes endpoints to ingest trace events, and serves them to the frontend."
     },
     "server/src/schema.ts": {
       "type": "non-python",
