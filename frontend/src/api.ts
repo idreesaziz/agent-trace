@@ -66,6 +66,17 @@ export async function fetchEvents(): Promise<TraceEvent[]> {
 }
 
 /**
+ * Fetch trace events for a specific agent run ID from the backend API.
+ */
+export async function fetchEventsByRunId(runId: string): Promise<TraceEvent[]> {
+  const response = await fetch(`/api/runs/${runId}/events`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch events for run ${runId}: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
  * Fetch all events and group them by run_id to return a list of AgentRuns.
  */
 export async function fetchAgentRuns(): Promise<AgentRun[]> {

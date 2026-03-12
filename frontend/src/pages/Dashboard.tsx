@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Clock, Box, Layers, ArrowRight, ServerCrash, Bot } from 'lucide-react';
 import { format } from 'date-fns';
-import { apiClient, RunGroup } from '../App';
+import * as apiClient from '../api';
+import { AgentRun as RunGroup } from '../types';
 
 export default function Dashboard() {
   const [runs, setRuns] = useState<RunGroup[]>([]);
@@ -12,10 +13,10 @@ export default function Dashboard() {
   useEffect(() => {
     let isMounted = true;
     
-    apiClient.fetchGroupedRuns()
+    apiClient.fetchAgentRuns()
       .then(data => {
         if (isMounted) {
-          setRuns(data);
+          setRuns(data as unknown as RunGroup[]);
           setLoading(false);
         }
       })
@@ -73,44 +74,55 @@ export default function Dashboard() {
             </thead>
             <tbody>
               {runs.map(run => {
-                const agentName = run.agent || (run.events.length > 0 ? run.events[0].agent : 'Unknown');
-                const eventCount = run.event_count || run.events.length;
+                const agentName = run.agent || (run.events && run.events.length > 0 ? run.events[0].agent : 'Unknown');
+                const eventCount = run.event_count || (run.events ? run.events.length : 0);
+
+                let formattedTime = 'Unknown';
+                if (run.start_time) {
+                  const dateObj = new Date(run.start_time);
+                  if (!isNaN(dateObj.getTime())) {
+                    formattedTime = format(dateObj, 'MMM d, yyyy HH:mm:ss');
+                  }
+                }
 
                 return (
                   <tr key={run.run_id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="p-4">
+                    <td className="p-4 text-gray-900 font-medium">
                       <div className="flex items-center gap-2">
                         <Box className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium text-gray-900">{run.project_name}</span>
+                        {run.project_name}
                       </div>
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2 text-gray-700">
+                    <td className="p-4 text-gray-600">
+                      <div className="flex items-center gap-2">
                         <Bot className="w-4 h-4 text-gray-400" />
                         {agentName}
                       </div>
                     </td>
-                    <td className="p-4 font-mono text-sm text-gray-500">
-                      {run.run_id.substring(0, 8)}...
+                    <td className="p-4 text-gray-500 font-mono text-sm">
+                      <Link to={`/trace/${run.run_id}`} className="text-blue-600 hover:underline">
+                        {run.run_id}
+                      </Link>
                     </td>
                     <td className="p-4 text-gray-600">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-gray-400" />
-                        {format(new Date(run.start_time), 'MMM d, yyyy HH:mm:ss')}
+                        {formattedTime}
                       </div>
                     </td>
                     <td className="p-4 text-gray-600">
                       <div className="flex items-center gap-2">
                         <Layers className="w-4 h-4 text-gray-400" />
-                        {eventCount}
+                        {eventCount} events
                       </div>
                     </td>
                     <td className="p-4 text-right">
-                      <Link
-                        to={`/trace/${run.run_id}`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors font-medium text-sm"
+                      <Link 
+                        to={`/trace/${run.run_id}`} 
+                        className="inline-flex items-center justify-center p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                        title="View Trace"
                       >
-                        View Trace <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className="w-5 h-5" />
                       </Link>
                     </td>
                   </tr>

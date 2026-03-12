@@ -97,16 +97,16 @@
     "frontend/src/api.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 3028,
+      "size_bytes": 3423,
       "description": "",
-      "purpose": "Provides API client functions and TypeScript type definitions for fetching and normalizing trace events from the backend."
+      "purpose": "Provides TypeScript types and network fetching utilities for interacting with the backend tracing API."
     },
     "frontend/src/App.tsx": {
       "type": "non-python",
       "extension": ".tsx",
-      "size_bytes": 407,
+      "size_bytes": 550,
       "description": "",
-      "purpose": "Defines the root React component establishing the application's client-side routing structure."
+      "purpose": "Defines the main application routing and layout, mapping URLs to the Dashboard and TraceDetails pages."
     },
     "frontend/src/main.tsx": {
       "type": "non-python",
@@ -132,9 +132,16 @@
     "frontend/src/pages/Dashboard.tsx": {
       "type": "non-python",
       "extension": ".tsx",
-      "size_bytes": 4939,
+      "size_bytes": 5433,
       "description": "",
-      "purpose": "Provides a React page component that fetches, manages, and displays a summary table of aggregated agent trace runs."
+      "purpose": "Displays a high-level dashboard of all recorded agent runs, allowing users to browse and select traces to inspect."
+    },
+    "frontend/src/pages/TraceDetails.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 8764,
+      "description": "",
+      "purpose": "Renders the detailed view of a specific agent run trace, including its individual events."
     },
     "sdk/python/example.py": {
       "functions": {
