@@ -33,58 +33,52 @@ pip install -e .
 
 ## Usage
 
-Use the Python SDK to instrument your custom agent loop or framework. The `Tracer` client handles API communication in a non-blocking background thread, ensuring it never slows down your agent's execution.
+### Framework Integrations: LangChain (Drop-In)
 
-**Example: Tracing Reasoning and Tool Calls**
+AgentTrace provides a native callback handler for LangChain. This automatically intercepts LLM prompts, reasoning, tool executions, and chain state transitions without requiring any manual instrumentation.
+
+**Example: Tracing a LangChain Agent**
 
 ```python
-import time
-from agent_trace import Tracer, Reasoning, ToolCall, ToolResult
+from langchain_openai import ChatOpenAI
+from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.tools import tool
 
-# Initialize the tracer (connects to http://localhost:3000/api/trace by default)
-tracer = Tracer(project_name="weather_agent_swarm")
+from agent_trace import Tracer
+from agent_trace.integrations.langchain import AgentTraceCallbackHandler
 
-agent_name = "WeatherBot"
+# 1. Initialize the Tracer and the LangChain Callback Handler
+tracer = Tracer(project_name="langchain_demo")
+trace_callback = AgentTraceCallbackHandler(tracer=tracer, agent_name="WeatherBot")
 
+# 2. Define a simple tool
+@tool
+def get_weather(location: str) -> str:
+    """Get the current weather for a location."""
+    return f"The weather in {location} is 72°F and sunny."
+
+tools = [get_weather]
+
+# 3. Create the LangChain agent
+llm = ChatOpenAI(model="gpt-4", temperature=0)
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "You are a helpful assistant."),
+    ("human", "{input}"),
+    ("placeholder", "{agent_scratchpad}"),
+])
+
+agent = create_tool_calling_agent(llm, tools, prompt)
+agent_executor = AgentExecutor(agent=agent, tools=tools)
+
+# 4. Run the agent, passing the AgentTraceCallbackHandler in the config!
 print("Running agent...")
-
-# 1. Log the agent's internal reasoning or thought process
-tracer.log_event(
-    agent=agent_name,
-    event_type="reasoning",
-    data=Reasoning(content="I need to check the weather in Tokyo before answering the user.")
+response = agent_executor.invoke(
+    {"input": "What's the weather like in Tokyo?"},
+    config={"callbacks": [trace_callback]}
 )
 
-# 2. Log the agent's intent to call a tool
-tracer.log_event(
-    agent=agent_name,
-    event_type="tool_call",
-    data=ToolCall(
-        tool_name="get_weather",
-        arguments={"location": "Tokyo, Japan", "unit": "celsius"}
-    )
-)
+print(f"Agent response: {response['output']}")
 
-# (Simulate the actual tool execution delay)
-time.sleep(1)
-weather_data = {"temperature": 22, "condition": "Sunny"}
-
-# 3. Log the result of the tool execution
-tracer.log_event(
-    agent=agent_name,
-    event_type="tool_result",
-    data=ToolResult(
-        tool_name="get_weather",
-        result=weather_data,
-        is_error=False
-    )
-)
-
-# 4. Log subsequent reasoning based on the tool's output
-tracer.log_event(
-    agent=agent_name,
-    event_type="reasoning",
-    data=Reasoning(content="The weather in Tokyo is 22°C and sunny. I will formulate the final response.")
-)
-
-print("Agent finished. Traces are automatically flushed on exit.")
+# The tracer will flush automatically on exit, or you can call flush explicitly
+tracer.flush()
