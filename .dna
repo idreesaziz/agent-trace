@@ -62,9 +62,9 @@
     "README.md": {
       "type": "non-python",
       "extension": ".md",
-      "size_bytes": 3134,
+      "size_bytes": 3232,
       "description": "",
-      "purpose": "Provides an overview, feature list, setup instructions, and usage examples for the AgentTrace project."
+      "purpose": "Provides an overview, feature list, setup instructions, and basic usage examples for the AgentTrace universal local debugger and visualizer."
     },
     "frontend/index.html": {
       "type": "non-python",
@@ -181,6 +181,34 @@
         "time"
       ],
       "purpose": "Demonstrates how to use the AgentTrace SDK to log agent execution steps like reasoning, tool calls, and state changes."
+    },
+    "sdk/python/example_langchain.py": {
+      "functions": {
+        "get_weather": {
+          "signature": "get_weather(location: str) -> str",
+          "decorators": [
+            "tool"
+          ],
+          "line": 30,
+          "description": "Simulates an external API call to retrieve current weather information for a specified location."
+        },
+        "main": {
+          "signature": "main()",
+          "decorators": [],
+          "line": 39,
+          "description": "Initializes the AgentTrace tracer, configures a LangChain agent with the weather tool, and executes a query using the trace callback handler."
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "os",
+        "sys",
+        "time"
+      ],
+      "purpose": "Demonstrates how to integrate the AgentTrace SDK with a standard LangChain agent to automatically trace prompts, tool executions, and state changes."
     },
     "sdk/python/requirements.txt": {
       "type": "non-python",
@@ -537,49 +565,43 @@
         "test_llm_reasoning_standard": {
           "signature": "test_llm_reasoning_standard()",
           "decorators": [],
-          "line": 8,
+          "line": 15,
           "description": "Tests that standard LLM completions correctly log a reasoning event."
         },
         "test_chat_model_reasoning": {
           "signature": "test_chat_model_reasoning()",
           "decorators": [],
-          "line": 34,
+          "line": 41,
           "description": "Tests that chat model interactions correctly map multimodal and text messages to a reasoning event."
         },
         "test_llm_error_cleans_up": {
           "signature": "test_llm_error_cleans_up()",
           "decorators": [],
-          "line": 64,
+          "line": 71,
           "description": "Ensures that LLM errors clean up intermediate stored prompt states without logging an event."
         },
         "test_tool_execution": {
           "signature": "test_tool_execution()",
           "decorators": [],
-          "line": 76,
+          "line": 83,
           "description": "Verifies that successful tool executions log both start and end events."
-        },
-        "test_tool_start_fallback_inputs": {
-          "signature": "test_tool_start_fallback_inputs()",
-          "decorators": [],
-          "line": 107,
-          "description": "Checks tool execution logging when standard inputs fall back to alternative formats."
         },
         "test_tool_error": {
           "signature": "test_tool_error()",
           "decorators": [],
-          "line": 124,
+          "line": 115,
           "description": "Tests that tool execution errors are correctly intercepted and logged."
         },
         "test_chain_execution": {
           "signature": "test_chain_execution()",
           "decorators": [],
-          "line": 146,
+          "line": 139,
           "description": "Verifies logging for the start and end of chain executions."
         },
         "test_chain_error_cleans_up": {
           "signature": "test_chain_error_cleans_up()",
           "decorators": [],
-          "line": 170,
+          "line": 164,
           "description": "Ensures that errors occurring within chains clean up resources appropriately."
         }
       },
@@ -588,6 +610,7 @@
       "internal_imports": [],
       "external_imports": [
         "agent_trace",
+        "pytest",
         "unittest",
         "uuid"
       ],

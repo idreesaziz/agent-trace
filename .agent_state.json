@@ -7,7 +7,7 @@
     "TypeScript",
     "Python"
   ],
-  "current_phase": "Implement Phase 5: Interactive Timeline Scrubber and State Diff Visualization",
+  "current_phase": "Implement Phase 6 Drop-in Framework Integration for LangChain",
   "maturity_level": "early",
   "completed_milestones": [],
   "planned_next_steps": [
@@ -125,13 +125,16 @@
     },
     {
       "date": "2026-03-14",
-      "summary": "Implement Phase 5: Interactive Timeline Scrubber and State Diff Visualization",
+      "summary": "Implement Phase 6 Drop-in Framework Integration for LangChain",
       "files_changed": [
-        "frontend/src/hooks/useAgentState.ts",
-        "frontend/src/components/TimelineScrubber.tsx",
-        "frontend/src/pages/TraceDetails.tsx"
+        "sdk/python/agent_trace/integrations/__init__.py",
+        "sdk/python/agent_trace/integrations/langchain.py",
+        "sdk/python/requirements.txt",
+        "sdk/python/tests/test_langchain.py",
+        "sdk/python/example_langchain.py",
+        "README.md"
       ],
-      "requests_used": 17
+      "requests_used": 36
     }
   ],
   "open_questions": [],
