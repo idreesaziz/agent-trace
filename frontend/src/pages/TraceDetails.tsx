@@ -1,17 +1,67 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, Layers, Box, Activity } from 'lucide-react';
-import { fetchRunById, AgentRun, TraceEvent } from '../api';
+import { 
+  ArrowLeft, 
+  Clock, 
+  Layers, 
+  Box, 
+  Activity, 
+  CheckCircle, 
+  AlertCircle, 
+  Wrench, 
+  MessageSquare 
+} from 'lucide-react';
+import { fetchRunById } from '../api';
+import { AgentRun, AgentEvent, StateChangeData } from '../types';
 import TimelineScrubber from '../components/TimelineScrubber';
 import StateViewer from '../components/StateViewer';
+
+// Hook logic implemented within the file to replace the missing import
+export const useAgentState = (
+  events: AgentEvent[] | undefined | null,
+  currentIndex: number
+): Record<string, any> => {
+  return useMemo(() => {
+    let currentState: Record<string, any> = {};
+
+    if (!events || !Array.isArray(events) || currentIndex < 0) {
+      return currentState;
+    }
+
+    const maxIndex = Math.min(currentIndex, events.length - 1);
+
+    for (let i = 0; i <= maxIndex; i++) {
+      const event = events[i];
+      
+      if (event?.event_type === 'state_change') {
+        const data = event.data as StateChangeData;
+        
+        if (data?.after && typeof data.after === 'object') {
+          currentState = {
+            ...currentState,
+            ...data.after,
+          };
+        }
+      }
+    }
+
+    return currentState;
+  }, [events, currentIndex]);
+};
 
 const formatTimestamp = (ts: string | number) => {
   const timeMs = typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts;
   return new Date(timeMs).toLocaleString();
 };
 
-const EventCard: React.FC<{ event: TraceEvent; isFuture: boolean; eventIndex: number }> = ({ event, isFuture, eventIndex }) => {
-  const { event_type, data } = event;
+const EventCard: React.FC<{ 
+  event: AgentEvent; 
+  isFuture: boolean; 
+  isActive: boolean; 
+  eventIndex: number; 
+  onClick: () => void;
+}> = ({ event, isFuture, isActive, eventIndex, onClick }) => {
+  const { event_type, data, timestamp } = event;
   
   const renderContent = () => {
     switch (event_type) {
@@ -82,34 +132,52 @@ const EventCard: React.FC<{ event: TraceEvent; isFuture: boolean; eventIndex: nu
 
   const getIcon = () => {
     switch (event_type) {
-      case 'reasoning': return <Activity className="w-5 h-5 text-purple-500" />;
-      case 'tool_call': return <Box className="w-5 h-5 text-blue-500" />;
-      case 'tool_result': return <Box className="w-5 h-5 text-green-500" />;
+      case 'reasoning': return <MessageSquare className="w-5 h-5 text-purple-500" />;
+      case 'tool_call': return <Wrench className="w-5 h-5 text-blue-500" />;
+      case 'tool_result': return (data as any).error ? <AlertCircle className="w-5 h-5 text-red-500" /> : <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'state_change': return <Layers className="w-5 h-5 text-orange-500" />;
       default: return <Activity className="w-5 h-5 text-gray-500" />;
     }
   };
 
+  const getTitle = () => {
+    switch (event_type) {
+      case 'reasoning': return 'Reasoning';
+      case 'tool_call': return 'Tool Call';
+      case 'tool_result': return 'Tool Result';
+      case 'state_change': return 'State Change';
+      default: return 'Unknown Event';
+    }
+  };
+
   return (
-    <div className={`bg-white border ${isFuture ? 'border-gray-200 opacity-40' : 'border-gray-300 shadow-sm'} rounded-lg p-5 transition-opacity duration-300`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gray-50 rounded-md border border-gray-100">
-            {getIcon()}
-          </div>
-          <div>
-            <span className="font-semibold text-gray-800 uppercase tracking-wider text-sm flex items-center gap-2">
-              <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs font-mono">Step {eventIndex + 1}</span>
-              {event_type.replace('_', ' ')}
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center text-gray-400 text-sm">
-          <Clock className="w-4 h-4 mr-1" />
-          {formatTimestamp(event.timestamp)}
+    <div 
+      className={`relative flex gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-200 ${
+        isActive ? 'bg-blue-50 border-blue-200 shadow-sm ring-1 ring-blue-500' :
+        isFuture ? 'bg-white border-gray-100 opacity-50 hover:opacity-75' :
+        'bg-white border-gray-200 hover:border-gray-300'
+      }`}
+      onClick={onClick}
+    >
+      <div className="flex flex-col items-center">
+        <div className={`p-2 rounded-full ${isActive ? 'bg-white' : 'bg-gray-50'}`}>
+          {getIcon()}
         </div>
       </div>
-      <div className="ml-12">
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            {getTitle()}
+            <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+              Step {eventIndex + 1}
+            </span>
+          </h3>
+          <span className="text-xs text-gray-500 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {formatTimestamp(timestamp)}
+          </span>
+        </div>
         {renderContent()}
       </div>
     </div>
@@ -117,136 +185,110 @@ const EventCard: React.FC<{ event: TraceEvent; isFuture: boolean; eventIndex: nu
 };
 
 const TraceDetails: React.FC = () => {
-  const { runId } = useParams<{ runId: string }>();
+  const { id } = useParams<{ id: string }>();
   const [run, setRun] = useState<AgentRun | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
+
   const eventRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  // Utilize the hook to process state sequentially 
+  const agentState = useAgentState(run?.events, currentIndex);
+
   useEffect(() => {
-    const loadRun = async () => {
-      try {
-        if (runId) {
-          const data = await fetchRunById(runId);
+    if (id) {
+      fetchRunById(id)
+        .then(data => {
           setRun(data);
-          setCurrentIndex(data.events.length > 0 ? data.events.length - 1 : 0);
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to fetch trace details');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadRun();
-  }, [runId]);
+          setCurrentIndex(0);
+          setLoading(false);
+        })
+        .catch(err => {
+          setError('Failed to load trace details.');
+          setLoading(false);
+        });
+    }
+  }, [id]);
 
   useEffect(() => {
-    if (run && run.events.length > 0) {
-      eventRefs.current = eventRefs.current.slice(0, run.events.length);
-      const currentElement = eventRefs.current[currentIndex];
-      if (currentElement) {
-        currentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+    if (eventRefs.current[currentIndex]) {
+      eventRefs.current[currentIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
     }
-  }, [currentIndex, run]);
+  }, [currentIndex]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (error || !run) {
-    return (
-      <div className="max-w-4xl mx-auto mt-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-        <h2 className="text-lg font-semibold mb-2">Error Loading Trace</h2>
-        <p>{error || 'Trace not found'}</p>
-        <Link to="/" className="text-blue-600 hover:underline mt-4 inline-block">
-          &larr; Back to Dashboard
-        </Link>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-8 text-center text-gray-600">Loading trace...</div>;
+  if (error || !run) return <div className="p-8 text-center text-red-600">{error || 'Trace not found'}</div>;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <Link to="/" className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Dashboard
-      </Link>
-
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{run.project_name}</h1>
-            <div className="text-sm text-gray-500 mb-4">
-              Agent: <span className="font-semibold text-gray-700">{run.agent}</span>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-sm text-gray-500">Run ID</div>
-            <div className="font-mono text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 mt-1">
-              {run.run_id}
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex gap-6 mt-4 pt-4 border-t border-gray-100">
-          <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Started</div>
-            <div className="text-sm mt-1">{formatTimestamp(run.start_time)}</div>
-          </div>
-          <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Events</div>
-            <div className="text-sm mt-1">{run.event_count}</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-6 sticky top-4 z-20">
-        <TimelineScrubber 
-          currentIndex={currentIndex} 
-          totalEvents={run.events.length} 
-          onIndexChange={setCurrentIndex} 
-        />
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6 relative">
-        <div className="w-full lg:w-2/3 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Event Timeline</h2>
-          {run.events.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-200 text-gray-500">
-              No events recorded for this run.
-            </div>
-          ) : (
-            run.events.map((event, index) => (
-              <div 
-                key={event.id || index} 
-                ref={el => eventRefs.current[index] = el}
-                className="scroll-mt-28"
-              >
-                <EventCard 
-                  event={event} 
-                  isFuture={index > currentIndex} 
-                  eventIndex={index}
-                />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex-none sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link to="/" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Box className="w-5 h-5 text-blue-600" />
+                {run.project_name}
+              </h1>
+              <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                <span className="font-medium text-gray-700">{run.agent}</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {formatTimestamp(run.start_time)}
+                </span>
               </div>
-            ))
-          )}
+            </div>
+          </div>
         </div>
-        
-        <div className="w-full lg:w-1/3">
-          <div className="sticky top-28 h-[calc(100vh-8rem)]">
-            <StateViewer 
+      </header>
+
+      {/* Main content */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col md:flex-row gap-6 min-h-0">
+        {/* Timeline Event View */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="mb-4 sticky top-0 z-10 bg-gray-50 pt-2 pb-4">
+            <TimelineScrubber 
               events={run.events} 
               currentIndex={currentIndex} 
+              onIndexChange={setCurrentIndex} 
             />
           </div>
+          
+          <div className="flex-1 overflow-y-auto pr-2 pb-20 space-y-4">
+            {run.events.map((event, index) => (
+              <div key={event.id || index} ref={el => eventRefs.current[index] = el}>
+                <EventCard
+                  event={event}
+                  eventIndex={index}
+                  isActive={index === currentIndex}
+                  isFuture={index > currentIndex}
+                  onClick={() => setCurrentIndex(index)}
+                />
+              </div>
+            ))}
+            {run.events.length === 0 && (
+              <div className="text-center text-gray-500 py-10 bg-white border border-gray-200 rounded-lg">
+                No events recorded for this run.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+
+        {/* State Viewer Sidebar */}
+        <div className="w-full md:w-96 flex-none">
+          <div className="sticky top-24 h-[calc(100vh-8rem)]">
+            <StateViewer events={run.events} currentIndex={currentIndex} />
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
