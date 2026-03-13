@@ -132,9 +132,16 @@
     "frontend/src/components/TimelineScrubber.tsx": {
       "type": "non-python",
       "extension": ".tsx",
-      "size_bytes": 4086,
+      "size_bytes": 6059,
       "description": "",
-      "purpose": "Implements a timeline playback control component to navigate step-by-step through a sequence of trace events."
+      "purpose": "Defines a React component for scrubbing through and controlling playback of an agent's event timeline."
+    },
+    "frontend/src/hooks/useAgentState.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 1161,
+      "description": "",
+      "purpose": "Provides a React hook to calculate the cumulative internal state of an agent by sequentially applying state change events up to a specific index."
     },
     "frontend/src/pages/Dashboard.css": {
       "type": "non-python",
@@ -153,9 +160,9 @@
     "frontend/src/pages/TraceDetails.tsx": {
       "type": "non-python",
       "extension": ".tsx",
-      "size_bytes": 9941,
+      "size_bytes": 10864,
       "description": "",
-      "purpose": "Renders a detailed view for a specific agent run, orchestrating the timeline scrubber, event timeline, and state viewer."
+      "purpose": "Renders the trace details page to inspect specific agent runs, utilizing custom hooks to reconstruct and display cumulative agent states."
     },
     "sdk/python/example.py": {
       "functions": {
@@ -178,9 +185,9 @@
     "sdk/python/requirements.txt": {
       "type": "non-python",
       "extension": ".txt",
-      "size_bytes": 48,
+      "size_bytes": 71,
       "description": "",
-      "purpose": "Specifies the required Python dependencies and their minimum versions for installing and running the SDK and its tests."
+      "purpose": "Specifies the required Python package dependencies and versions for the AgentTrace SDK and its integrations."
     },
     "sdk/python/agent_trace/models.py": {
       "functions": {},
@@ -422,6 +429,169 @@
         "typing"
       ],
       "purpose": "Implements the Python SDK's Tracer client and dataclasses for asynchronously logging agent events to the local server."
+    },
+    "sdk/python/agent_trace/integrations/langchain.py": {
+      "functions": {},
+      "classes": {
+        "AgentTraceCallbackHandler": {
+          "bases": [
+            "BaseCallbackHandler"
+          ],
+          "decorators": [],
+          "methods": {
+            "__init__": {
+              "signature": "__init__(self, tracer: Tracer, agent_name: str='langchain_agent')",
+              "decorators": [],
+              "line": 26,
+              "description": "Initializes the callback handler with a tracer instance and an agent name."
+            },
+            "on_llm_start": {
+              "signature": "on_llm_start(self, serialized: Dict[str, Any], prompts: List[str], *, run_id: UUID, parent_run_id: Optional[UUID]=None, tags: Optional[List[str]]=None, metadata: Optional[Dict[str, Any]]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 32,
+              "description": "Captures the start of an LLM generation step and stores the prompts by run ID for later reasoning association."
+            },
+            "on_chat_model_start": {
+              "signature": "on_chat_model_start(self, serialized: Dict[str, Any], messages: List[List[Any]], *, run_id: UUID, parent_run_id: Optional[UUID]=None, tags: Optional[List[str]]=None, metadata: Optional[Dict[str, Any]]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 46,
+              "description": "Captures chat messages as flattened text prompts to associate with reasoning upon generation completion."
+            },
+            "on_llm_end": {
+              "signature": "on_llm_end(self, response: LLMResult, *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 76,
+              "description": "Extracts the generated text and emits it as an AgentTrace reasoning event."
+            },
+            "on_llm_error": {
+              "signature": "on_llm_error(self, error: Union[Exception, KeyboardInterrupt], *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 102,
+              "description": "Cleans up stored prompt state if an LLM execution encounters an error."
+            },
+            "on_tool_start": {
+              "signature": "on_tool_start(self, serialized: Dict[str, Any], input_str: str, *, run_id: UUID, parent_run_id: Optional[UUID]=None, tags: Optional[List[str]]=None, metadata: Optional[Dict[str, Any]]=None, inputs: Optional[Dict[str, Any]]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 113,
+              "description": "Logs the beginning of a tool execution as a tool call event."
+            },
+            "on_tool_end": {
+              "signature": "on_tool_end(self, output: Any, *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 146,
+              "description": "Logs the completion of a tool execution along with its output."
+            },
+            "on_tool_error": {
+              "signature": "on_tool_error(self, error: Union[Exception, KeyboardInterrupt], *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 170,
+              "description": "Handles errors encountered during tool execution."
+            },
+            "on_chain_start": {
+              "signature": "on_chain_start(self, serialized: Dict[str, Any], inputs: Dict[str, Any], *, run_id: UUID, parent_run_id: Optional[UUID]=None, tags: Optional[List[str]]=None, metadata: Optional[Dict[str, Any]]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 194,
+              "description": "Records the start of a sequence of operations or chain."
+            },
+            "on_chain_end": {
+              "signature": "on_chain_end(self, outputs: Dict[str, Any], *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 211,
+              "description": "Records the successful completion of a chain operation."
+            },
+            "on_chain_error": {
+              "signature": "on_chain_error(self, error: Union[Exception, KeyboardInterrupt], *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 237,
+              "description": "Handles errors that occur within a chain execution."
+            }
+          },
+          "class_attributes": {},
+          "line": 20,
+          "description": "A callback handler class that integrates LangChain executions with the AgentTrace telemetry system."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "langchain_core",
+        "logging",
+        "typing",
+        "uuid"
+      ],
+      "purpose": "Provides a LangChain callback handler that intercepts LLM, tool, and chain events and maps them to standard AgentTrace payload models."
+    },
+    "sdk/python/agent_trace/integrations/__init__.py": {
+      "functions": {},
+      "classes": {},
+      "constants": {},
+      "internal_imports": [
+        "langchain"
+      ],
+      "external_imports": []
+    },
+    "sdk/python/tests/test_langchain.py": {
+      "functions": {
+        "test_llm_reasoning_standard": {
+          "signature": "test_llm_reasoning_standard()",
+          "decorators": [],
+          "line": 8,
+          "description": "Tests that standard LLM completions correctly log a reasoning event."
+        },
+        "test_chat_model_reasoning": {
+          "signature": "test_chat_model_reasoning()",
+          "decorators": [],
+          "line": 34,
+          "description": "Tests that chat model interactions correctly map multimodal and text messages to a reasoning event."
+        },
+        "test_llm_error_cleans_up": {
+          "signature": "test_llm_error_cleans_up()",
+          "decorators": [],
+          "line": 64,
+          "description": "Ensures that LLM errors clean up intermediate stored prompt states without logging an event."
+        },
+        "test_tool_execution": {
+          "signature": "test_tool_execution()",
+          "decorators": [],
+          "line": 76,
+          "description": "Verifies that successful tool executions log both start and end events."
+        },
+        "test_tool_start_fallback_inputs": {
+          "signature": "test_tool_start_fallback_inputs()",
+          "decorators": [],
+          "line": 107,
+          "description": "Checks tool execution logging when standard inputs fall back to alternative formats."
+        },
+        "test_tool_error": {
+          "signature": "test_tool_error()",
+          "decorators": [],
+          "line": 124,
+          "description": "Tests that tool execution errors are correctly intercepted and logged."
+        },
+        "test_chain_execution": {
+          "signature": "test_chain_execution()",
+          "decorators": [],
+          "line": 146,
+          "description": "Verifies logging for the start and end of chain executions."
+        },
+        "test_chain_error_cleans_up": {
+          "signature": "test_chain_error_cleans_up()",
+          "decorators": [],
+          "line": 170,
+          "description": "Ensures that errors occurring within chains clean up resources appropriately."
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "unittest",
+        "uuid"
+      ],
+      "purpose": "Contains unit tests verifying the proper interception and formatting of LangChain events by the AgentTrace callback handler."
     },
     "sdk/python/tests/test_models.py": {
       "functions": {
