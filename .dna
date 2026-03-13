@@ -122,6 +122,20 @@
       "description": "",
       "purpose": "Centralizes TypeScript interfaces and types representing agent trace payloads, events, and runs."
     },
+    "frontend/src/components/StateViewer.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 5026,
+      "description": "",
+      "purpose": "Provides a component to visually render the nested internal state of an agent at a specific point in time."
+    },
+    "frontend/src/components/TimelineScrubber.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 4086,
+      "description": "",
+      "purpose": "Implements a timeline playback control component to navigate step-by-step through a sequence of trace events."
+    },
     "frontend/src/pages/Dashboard.css": {
       "type": "non-python",
       "extension": ".css",
@@ -139,9 +153,9 @@
     "frontend/src/pages/TraceDetails.tsx": {
       "type": "non-python",
       "extension": ".tsx",
-      "size_bytes": 8764,
+      "size_bytes": 9941,
       "description": "",
-      "purpose": "Renders the detailed view of a specific agent run trace, including its individual events."
+      "purpose": "Renders a detailed view for a specific agent run, orchestrating the timeline scrubber, event timeline, and state viewer."
     },
     "sdk/python/example.py": {
       "functions": {
