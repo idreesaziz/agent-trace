@@ -135,9 +135,66 @@ app.get('/api/runs', (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`AgentTrace server running on port ${PORT}`);
+// Export events to JSON
+app.get('/api/export', (req, res) => {
+  try {
+    const { run_id } = req.query;
+
+    let queryStr = `SELECT event_id, project_name, run_id, parent_id, agent, event_type, data, timestamp FROM events`;
+    const params: any[] = [];
+
+    if (run_id) {
+      queryStr += ` WHERE run_id = ?`;
+      params.push(String(run_id));
+    }
+    
+    queryStr += ` ORDER BY timestamp ASC`;
+
+    const events = db.prepare(queryStr).all(...params) as any[];
+
+    // Parse data field back to JSON
+    const formattedEvents = events.map((row) => {
+      try {
+        return { ...row, data: JSON.parse(row.data) };
+      } catch (e) {
+        return row;
+      }
+    });
+
+    res.setHeader('Content-disposition', 'attachment; filename=agent-trace-export.json');
+    res.setHeader('Content-type', 'application/json');
+    res.status(200).send(JSON.stringify(formattedEvents, null, 2));
+  } catch (error: any) {
+    console.error('Error exporting events:', error);
+    res.status(500).json({ success: false, error: error.message || 'Internal Server Error' });
+  }
 });
+
+// Bulk import events
+app.post('/api/import', (req, res) => {
+  try {
+    const events = z.array(AgentEventSchema).parse(req.body);
+    
+    const insertMany = db.transaction((eventsList: any[]) => {
+      for (const event of eventsList) {
+        insertEvent(event);
+      }
+    });
+    
+    insertMany(events);
+    res.status(200).json({ success: true, count: events.length });
+  } catch (error: any) {
+    console.error('Error importing events:', error);
+    res.status(400).json({ success: false, error: error.message || 'Invalid payload' });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`AgentTrace Server listening on port ${PORT}`);
+  });
+}
 
 export default app;

@@ -105,78 +105,67 @@ export function getEvents(options: { search?: string; event_type?: string; limit
 
   if (options.run_id) {
     queryStr += ` AND run_id = ?`;
-    params.push(options.run_id);
+    params.push(String(options.run_id));
   }
 
   if (options.event_type) {
     queryStr += ` AND event_type = ?`;
-    params.push(options.event_type);
+    params.push(String(options.event_type));
   }
 
   if (options.search) {
-    queryStr += ` AND (data LIKE ? OR agent LIKE ? OR event_id LIKE ? OR run_id LIKE ? OR project_name LIKE ?)`;
-    const term = `%${options.search}%`;
-    params.push(term, term, term, term, term);
+    const searchTerm = `%${String(options.search)}%`;
+    queryStr += ` AND (data LIKE ? OR agent LIKE ? OR project_name LIKE ?)`;
+    params.push(searchTerm, searchTerm, searchTerm);
   }
 
-  queryStr += ` ORDER BY timestamp DESC`;
+  queryStr += ` ORDER BY timestamp ASC`;
 
   if (options.limit !== undefined) {
     queryStr += ` LIMIT ?`;
-    params.push(options.limit);
-    if (options.offset !== undefined) {
-      queryStr += ` OFFSET ?`;
-      params.push(options.offset);
-    }
+    params.push(Number(options.limit));
   }
 
-  return db.prepare(queryStr).all(...params);
+  if (options.offset !== undefined) {
+    queryStr += ` OFFSET ?`;
+    params.push(Number(options.offset));
+  }
+
+  const rows = db.prepare(queryStr).all(...params) as any[];
+
+  return rows.map((row) => {
+    try {
+      return { ...row, data: JSON.parse(row.data) };
+    } catch (e) {
+      return row;
+    }
+  });
 }
 
-export function getGroupedRuns(options: { limit?: number; offset?: number; project_name?: string; search?: string; event_type?: string } = {}) {
-  let queryStr = `
-    SELECT 
-      run_id,
-      project_name,
-      COUNT(*) as total_events,
-      MIN(timestamp) as start_time,
-      MAX(timestamp) as end_time
-    FROM events
-    WHERE run_id IS NOT NULL
-  `;
-  const params: any[] = [];
-
-  if (options.project_name) {
-    queryStr += ` AND project_name = ?`;
-    params.push(options.project_name);
-  }
-
-  if (options.event_type) {
-    queryStr += ` AND run_id IN (SELECT DISTINCT run_id FROM events WHERE event_type = ?)`;
-    params.push(options.event_type);
-  }
-
-  if (options.search) {
-    const term = `%${options.search}%`;
-    queryStr += ` AND run_id IN (SELECT DISTINCT run_id FROM events WHERE data LIKE ? OR agent LIKE ? OR project_name LIKE ?)`;
-    params.push(term, term, term);
-  }
-
-  queryStr += `
-    GROUP BY run_id, project_name
-    ORDER BY MAX(timestamp) DESC
-  `;
-
-  if (options.limit !== undefined) {
-    queryStr += ` LIMIT ?`;
-    params.push(options.limit);
-    if (options.offset !== undefined) {
-      queryStr += ` OFFSET ?`;
-      params.push(options.offset);
+export function exportRunEvents(runId: string): AgentEvent[] {
+  const stmt = db.prepare(`SELECT * FROM events WHERE run_id = ? ORDER BY timestamp ASC`);
+  const rows = stmt.all(runId) as any[];
+  
+  return rows.map((row) => {
+    try {
+      return { ...row, data: JSON.parse(row.data) };
+    } catch (e) {
+      return row;
     }
-  }
+  });
+}
 
-  return db.prepare(queryStr).all(...params);
+export function exportAllEvents(): AgentEvent[] {
+  const stmt = db.prepare(`SELECT * FROM events ORDER BY timestamp ASC`);
+  const rows = stmt.all() as any[];
+  
+  return rows.map((row) => {
+    try {
+      return { ...row, data: JSON.parse(row.data) };
+    } catch (e) {
+      return row;
+    }
+  });
 }
 
 export default db;
