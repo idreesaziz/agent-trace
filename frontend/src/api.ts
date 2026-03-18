@@ -96,47 +96,105 @@ export async function fetchAgentRuns(filters?: FilterOptions): Promise<AgentRun[
         start_time: r.start_time,
         end_time: r.end_time,
         event_count: r.total_events,
-        events: [] 
+        events: [] // Will be populated when fetching a specific run
       }));
+    } else {
+      throw new Error(`Failed to fetch runs: ${response.status} ${response.statusText}`);
     }
   } catch (err) {
-    // Ignore fetch errors to gracefully fallback to old logic
+    console.error('Failed to fetch agent runs:', err);
+    throw err;
   }
+}
 
-  // Fallback to fetchEvents and manual grouping if /api/runs is unavailable
-  const events = await fetchEvents(filters);
-  
-  const runMap = new Map<string, AgentEvent[]>();
-  for (const event of events) {
-    if (!runMap.has(event.run_id)) {
-      runMap.set(event.run_id, []);
+/**
+ * Fetch a single agent run by ID, including all of its events.
+ */
+export async function fetchRunById(runId: string): Promise<AgentRun | null> {
+  try {
+    const events = await fetchEvents({ runId });
+    
+    if (!events || events.length === 0) {
+      return null;
     }
-    runMap.get(event.run_id)!.push(event);
-  }
-  
-  const runs: AgentRun[] = [];
-  for (const [run_id, runEvents] of runMap.entries()) {
-    if (runEvents.length === 0) continue;
     
-    // Sort events by timestamp
-    runEvents.sort((a, b) => getTimestampMs(a.timestamp) - getTimestampMs(b.timestamp));
+    // Ensure chronological order
+    const sortedEvents = [...events].sort((a, b) => getTimestampMs(a.timestamp) - getTimestampMs(b.timestamp));
+    const firstEvent = sortedEvents[0];
+    const lastEvent = sortedEvents[sortedEvents.length - 1];
     
-    const firstEvent = runEvents[0];
-    const lastEvent = runEvents[runEvents.length - 1];
-    
-    runs.push({
-      run_id,
+    return {
+      run_id: runId,
       project_name: firstEvent.project_name,
       agent: firstEvent.agent,
-      start_time: firstEvent.timestamp,
-      end_time: lastEvent.timestamp,
-      event_count: runEvents.length,
-      events: runEvents
-    });
+      start_time: firstEvent.timestamp as string,
+      end_time: lastEvent.timestamp as string,
+      event_count: sortedEvents.length,
+      events: sortedEvents
+    };
+  } catch (err) {
+    console.error(`Error fetching run ${runId}:`, err);
+    throw err;
   }
-  
-  // Sort runs by start time descending
-  runs.sort((a, b) => getTimestampMs(b.start_time) - getTimestampMs(a.start_time));
-  
-  return runs;
+}
+
+/**
+ * Helper to trigger download of events as JSON
+ */
+export function downloadEventsAsJson(events: AgentEvent[], filename: string): void {
+  const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Export all events for a specific run as a JSON file
+ */
+export async function exportRunEvents(runId: string): Promise<void> {
+  const events = await fetchEvents({ runId });
+  if (!events || events.length === 0) {
+    throw new Error(`No events found for run ${runId}`);
+  }
+  const filename = `agent-trace-${runId}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+  downloadEventsAsJson(events, filename);
+}
+
+/**
+ * Import an array of trace events
+ */
+export async function importTraceEvents(events: AgentEvent[]): Promise<void> {
+  try {
+    const response = await fetch('/api/trace/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(events.map((ev: any) => {
+        const { id, ...eventData } = ev; // strip id for auto-increment
+        return eventData;
+      }))
+    });
+    if (response.ok) return;
+  } catch (err) {
+    // Fallback to individual POSTs if bulk fails
+  }
+
+  for (const ev of events) {
+    const { id, ...eventData } = ev as any;
+    const res = await fetch('/api/trace', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(eventData)
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Failed to import event: ${res.statusText}`);
+    }
+  }
 }

@@ -83,23 +83,34 @@ export default function Dashboard() {
         throw new Error("Invalid trace file format. Expected an array of events.");
       }
 
-      for (const ev of events) {
-        // Strip out id so DB auto-increments and doesn't conflict
-        const { id, ...eventData } = ev;
-        const res = await fetch('/api/trace', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(eventData)
-        });
-        
-        if (!res.ok) {
-          throw new Error(`Failed to import event: ${res.statusText}`);
+      const eventsToImport = events.map(ev => {
+        const { id, created_at, ...eventData } = ev;
+        return eventData;
+      });
+
+      const res = await fetch('/api/trace/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventsToImport)
+      });
+      
+      if (!res.ok) {
+        for (const ev of eventsToImport) {
+          const fallbackRes = await fetch('/api/trace', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(ev)
+          });
+          if (!fallbackRes.ok) {
+            throw new Error(`Failed to import event: ${fallbackRes.statusText}`);
+          }
         }
       }
-
-      // Reload runs after import
+      
       loadRuns();
     } catch (err: any) {
       alert(`Failed to import traces: ${err.message}`);
@@ -115,155 +126,169 @@ export default function Dashboard() {
     return runs.filter(run => {
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        if (!run.project_name?.toLowerCase().includes(term) &&
-            !run.agent?.toLowerCase().includes(term) &&
-            !run.run_id?.toLowerCase().includes(term)) {
+        if (
+          !run.project_name.toLowerCase().includes(term) &&
+          !run.run_id.toLowerCase().includes(term) &&
+          !(run.agent && run.agent.toLowerCase().includes(term))
+        ) {
           return false;
         }
       }
-      if (eventTypeFilter) {
-        const hasEvent = run.events?.some(e => e.event_type === eventTypeFilter);
-        if (!hasEvent) return false;
+      if (eventTypeFilter && eventTypeFilter !== 'all') {
+        // Event type filtering primarily handled on backend, but leaving hook active
       }
       return true;
     });
   }, [runs, searchTerm, eventTypeFilter]);
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans text-gray-900">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <Activity className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight">AgentTrace</h1>
-            <p className="text-sm text-gray-500 font-medium">Local Debugger</p>
-          </div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full min-h-[50vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Activity className="w-8 h-8 text-blue-500 animate-spin" />
+          <p className="text-gray-500 font-medium">Loading agent runs...</p>
         </div>
-        
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center max-w-md mx-auto">
+        <ServerCrash className="w-16 h-16 text-red-400 mb-6" />
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Connection Error</h2>
+        <p className="text-gray-600 mb-6">{error}</p>
+        <button 
+          onClick={loadRuns}
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <Activity className="w-8 h-8 text-blue-600" />
+            Agent Runs
+          </h1>
+          <p className="text-gray-500 mt-2">Monitor and debug your agent executions across frameworks.</p>
+        </div>
+
         <div className="flex items-center gap-3">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="application/json" 
-            onChange={handleImport} 
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImport}
+            className="hidden"
+            accept=".json"
           />
-          <button 
+          <button
             onClick={handleImportClick}
             disabled={isImporting}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors shadow-sm text-sm font-medium disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors shadow-sm disabled:opacity-50"
           >
             <Upload className="w-4 h-4" />
-            {isImporting ? 'Importing...' : 'Import Traces'}
+            {isImporting ? 'Importing...' : 'Import'}
           </button>
-          <button 
+          
+          <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors shadow-sm text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors shadow-sm"
           >
             <Download className="w-4 h-4" />
-            Export Traces
+            Export All
           </button>
         </div>
-      </header>
+      </div>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
-        <div className="mb-8 flex flex-col sm:flex-row gap-4 justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-800">Recent Runs</h2>
-          
-          <div className="flex gap-4 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Search project or agent..." 
-                className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <select 
-                className="pl-9 pr-8 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm appearance-none"
-                value={eventTypeFilter}
-                onChange={e => setEventTypeFilter(e.target.value)}
-              >
-                <option value="">All Events</option>
-                <option value="reasoning">Reasoning</option>
-                <option value="tool_call">Tool Calls</option>
-                <option value="tool_result">Tool Results</option>
-                <option value="state_change">State Changes</option>
-              </select>
-            </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text" 
+              placeholder="Search by project, run ID, or agent..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+            />
+          </div>
+          <div className="relative w-full sm:w-64">
+            <Filter className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <select 
+              value={eventTypeFilter}
+              onChange={(e) => setEventTypeFilter(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white"
+            >
+              <option value="all">All Event Types</option>
+              <option value="reasoning">Reasoning</option>
+              <option value="tool_call">Tool Calls</option>
+              <option value="tool_result">Tool Results</option>
+              <option value="state_change">State Changes</option>
+            </select>
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-500">
-            <Activity className="w-8 h-8 animate-spin text-blue-500 mb-4" />
-            <p className="text-lg font-medium">Loading runs...</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-20 text-red-500 bg-red-50 rounded-xl border border-red-100">
-            <ServerCrash className="w-10 h-10 mb-4 text-red-400" />
-            <p className="text-lg font-bold mb-2">Failed to load data</p>
-            <p className="text-red-400">{error}</p>
-          </div>
-        ) : filteredRuns.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-200 rounded-xl shadow-sm text-gray-500">
-            <Box className="w-12 h-12 mb-4 text-gray-300" />
-            <p className="text-lg font-medium text-gray-900 mb-1">No runs found</p>
-            <p className="text-sm">We couldn't find any agent runs matching your criteria.</p>
+        {filteredRuns.length === 0 ? (
+          <div className="p-12 text-center">
+            <Bot className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-1">No runs found</h3>
+            <p className="text-gray-500">
+              {searchTerm || eventTypeFilter !== 'all' 
+                ? 'Try adjusting your search or filters.' 
+                : 'Connect your agent framework using the SDK to see traces here.'}
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <ul className="divide-y divide-gray-100">
             {filteredRuns.map((run) => (
-              <Link 
-                key={run.run_id} 
-                to={`/run/${run.run_id}`}
-                className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-300 transition-all block relative overflow-hidden"
-              >
-                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-gray-100 p-2 rounded-lg group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                      <Bot className="w-5 h-5 text-gray-600 group-hover:text-blue-600" />
+              <li key={run.run_id} className="hover:bg-blue-50/30 transition-colors">
+                <Link to={`/trace/${run.run_id}`} className="block p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-lg font-semibold text-gray-900">
+                          {run.project_name}
+                        </h2>
+                        <span className="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                          {run.agent || 'Agent'}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-1.5 font-mono text-xs">
+                          <Box className="w-4 h-4" />
+                          {run.run_id.substring(0, 8)}...
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-4 h-4" />
+                          {new Date(
+                            typeof run.start_time === 'number' && Number(run.start_time) < 1e12 
+                              ? Number(run.start_time) * 1000 
+                              : Number(run.start_time)
+                          ).toLocaleString()}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Layers className="w-4 h-4" />
+                          {run.event_count} events
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 group-hover:text-blue-700 transition-colors line-clamp-1" title={run.project_name}>
-                        {run.project_name}
-                      </h3>
-                      <p className="text-sm text-gray-500 font-medium line-clamp-1" title={run.agent}>
-                        {run.agent || 'Unknown Agent'}
-                      </p>
+                    <div className="flex items-center gap-2 text-blue-600 font-medium group">
+                      View Trace
+                      <ArrowRight className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
-                </div>
-
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    <span className="font-mono">{new Date(run.start_time).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Layers className="w-4 h-4 text-gray-400" />
-                    <span>{run.event_count || run.events?.length || 0} events recorded</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-sm font-semibold text-blue-600 group-hover:text-blue-700">
-                  <span>View Trace</span>
-                  <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Link>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-      </main>
+      </div>
     </div>
   );
 }
