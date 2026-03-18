@@ -9,7 +9,9 @@ import {
   CheckCircle, 
   AlertCircle, 
   Wrench, 
-  MessageSquare 
+  MessageSquare,
+  Search,
+  Filter
 } from 'lucide-react';
 import { fetchRunById } from '../api';
 import { AgentRun, AgentEvent, StateChangeData } from '../types';
@@ -100,21 +102,19 @@ const EventCard: React.FC<{
       case 'state_change':
         return (
           <div>
-            {((data as any).keys_changed && (data as any).keys_changed.length > 0) && (
-              <div className="text-sm font-medium text-gray-700 mb-3">
-                Changed Keys: {((data as any).keys_changed).join(', ')}
-              </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="font-semibold text-purple-800 mb-2">
+              Keys changed: {((data as any).keys_changed || []).join(', ')}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Before</span>
-                <pre className="bg-red-50 p-3 rounded text-sm border border-red-100 overflow-x-auto mt-2 text-red-900">
+                <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">Before</div>
+                <pre className="bg-gray-50 p-3 rounded text-sm border border-gray-100 overflow-x-auto text-gray-700">
                   {JSON.stringify((data as any).before, null, 2)}
                 </pre>
               </div>
               <div>
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">After</span>
-                <pre className="bg-green-50 p-3 rounded text-sm border border-green-100 overflow-x-auto mt-2 text-green-900">
+                <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider font-semibold">After</div>
+                <pre className="bg-gray-50 p-3 rounded text-sm border border-gray-100 overflow-x-auto text-gray-700">
                   {JSON.stringify((data as any).after, null, 2)}
                 </pre>
               </div>
@@ -132,165 +132,280 @@ const EventCard: React.FC<{
 
   const getIcon = () => {
     switch (event_type) {
-      case 'reasoning': return <MessageSquare className="w-5 h-5 text-purple-500" />;
+      case 'reasoning': return <MessageSquare className="w-5 h-5 text-gray-500" />;
       case 'tool_call': return <Wrench className="w-5 h-5 text-blue-500" />;
       case 'tool_result': return (data as any).error ? <AlertCircle className="w-5 h-5 text-red-500" /> : <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'state_change': return <Layers className="w-5 h-5 text-orange-500" />;
+      case 'state_change': return <Layers className="w-5 h-5 text-purple-500" />;
       default: return <Activity className="w-5 h-5 text-gray-500" />;
     }
   };
 
-  const getTitle = () => {
+  const getBorderColor = () => {
+    if (isActive) return 'border-blue-500 ring-2 ring-blue-200';
     switch (event_type) {
-      case 'reasoning': return 'Reasoning';
-      case 'tool_call': return 'Tool Call';
-      case 'tool_result': return 'Tool Result';
-      case 'state_change': return 'State Change';
-      default: return 'Unknown Event';
+      case 'reasoning': return 'border-gray-200';
+      case 'tool_call': return 'border-blue-200';
+      case 'tool_result': return (data as any).error ? 'border-red-200' : 'border-green-200';
+      case 'state_change': return 'border-purple-200';
+      default: return 'border-gray-200';
     }
   };
 
   return (
     <div 
-      className={`relative flex gap-4 p-4 rounded-xl border cursor-pointer transition-all duration-200 ${
-        isActive ? 'bg-blue-50 border-blue-200 shadow-sm ring-1 ring-blue-500' :
-        isFuture ? 'bg-white border-gray-100 opacity-50 hover:opacity-75' :
-        'bg-white border-gray-200 hover:border-gray-300'
-      }`}
+      className={`bg-white rounded-lg shadow-sm border ${getBorderColor()} p-5 cursor-pointer transition-all ${
+        isFuture ? 'opacity-50 grayscale hover:grayscale-0' : 'opacity-100'
+      } hover:shadow-md mb-4`}
       onClick={onClick}
     >
-      <div className="flex flex-col items-center">
-        <div className={`p-2 rounded-full ${isActive ? 'bg-white' : 'bg-gray-50'}`}>
+      <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+        <div className="flex items-center gap-3">
           {getIcon()}
-        </div>
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            {getTitle()}
-            <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-              Step {eventIndex + 1}
-            </span>
+          <h3 className="text-lg font-semibold text-gray-800 capitalize">
+            {event_type.replace('_', ' ')}
           </h3>
-          <span className="text-xs text-gray-500 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            {formatTimestamp(timestamp)}
+          <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-mono">
+            Step {eventIndex + 1}
           </span>
         </div>
+        <div className="text-sm text-gray-500 font-mono">
+          {formatTimestamp(timestamp)}
+        </div>
+      </div>
+      <div className="mt-2">
         {renderContent()}
       </div>
     </div>
   );
 };
 
-const TraceDetails: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+export default function TraceDetails() {
+  const { runId } = useParams<{ runId: string }>();
   const [run, setRun] = useState<AgentRun | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const eventRefs = useRef<(HTMLDivElement | null)[]>([]);
-
-  // Utilize the hook to process state sequentially 
-  const agentState = useAgentState(run?.events, currentIndex);
-
-  useEffect(() => {
-    if (id) {
-      fetchRunById(id)
-        .then(data => {
-          setRun(data);
-          setCurrentIndex(0);
-          setLoading(false);
-        })
-        .catch(err => {
-          setError('Failed to load trace details.');
-          setLoading(false);
-        });
-    }
-  }, [id]);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [currentIndex, setCurrentIndex] = useState(-1);
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [eventTypeFilter, setEventTypeFilter] = useState<string>('all');
 
   useEffect(() => {
-    if (eventRefs.current[currentIndex]) {
-      eventRefs.current[currentIndex]?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
+    let isMounted = true;
+    if (!runId) return;
+
+    fetchRunById(runId)
+      .then(data => {
+        if (isMounted) {
+          if (!data) {
+            setError('Trace not found');
+          } else {
+            setRun(data as unknown as AgentRun);
+            setCurrentIndex((data.events?.length || 0) - 1);
+          }
+          setLoading(false);
+        }
+      })
+      .catch(err => {
+        if (isMounted) {
+          setError(err.message || 'Failed to fetch trace details');
+          setLoading(false);
+        }
       });
-    }
-  }, [currentIndex]);
 
-  if (loading) return <div className="p-8 text-center text-gray-600">Loading trace...</div>;
-  if (error || !run) return <div className="p-8 text-center text-red-600">{error || 'Trace not found'}</div>;
+    return () => {
+      isMounted = false;
+    };
+  }, [runId]);
+
+  // Handle Playback
+  useEffect(() => {
+    let interval: number;
+    if (isPlaying && run && currentIndex < run.events.length - 1) {
+      interval = window.setInterval(() => {
+        setCurrentIndex(prev => {
+          if (prev >= run.events.length - 1) {
+            setIsPlaying(false);
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } else if (isPlaying && run && currentIndex >= run.events.length - 1) {
+      setIsPlaying(false);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying, currentIndex, run]);
+
+  const currentState = useAgentState(run?.events, currentIndex);
+
+  const filteredEvents = useMemo(() => {
+    if (!run?.events) return [];
+    
+    return run.events.filter((event) => {
+      // Filter by Event Type
+      if (eventTypeFilter !== 'all' && event.event_type !== eventTypeFilter) {
+        return false;
+      }
+      
+      // Filter by Search Query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const eventTypeStr = String(event.event_type || '').toLowerCase();
+        let dataStr = '';
+        
+        try {
+          dataStr = JSON.stringify(event.data).toLowerCase();
+        } catch (e) {
+          // ignore stringify errors
+        }
+        
+        if (!eventTypeStr.includes(query) && !dataStr.includes(query)) {
+          return false;
+        }
+      }
+      
+      return true;
+    });
+  }, [run?.events, searchQuery, eventTypeFilter]);
+
+  if (loading) {
+    return (
+      <div className="p-8 text-gray-500 flex items-center justify-center gap-2 h-screen">
+        <Activity className="animate-spin w-5 h-5 text-blue-500" /> Loading trace details...
+      </div>
+    );
+  }
+
+  if (error || !run) {
+    return (
+      <div className="p-8 text-red-500 flex items-center justify-center gap-2 h-screen flex-col">
+        <div className="flex items-center gap-2 text-xl font-bold mb-4">
+          <AlertCircle className="w-8 h-8" /> Error
+        </div>
+        <p>{error || 'Trace not found'}</p>
+        <Link to="/" className="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors">
+          Back to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex-none sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <Box className="w-5 h-5 text-blue-600" />
-                {run.project_name}
-              </h1>
-              <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                <span className="font-medium text-gray-700">{run.agent}</span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  {formatTimestamp(run.start_time)}
-                </span>
-              </div>
+      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10 shrink-0">
+        <div className="flex items-center gap-4">
+          <Link to="/" className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Box className="w-5 h-5 text-blue-500" />
+              {run.project_name} <span className="text-gray-400 font-normal">/</span> {run.agent || (run.events[0]?.agent)}
+            </h1>
+            <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+              <span className="flex items-center gap-1 font-mono">
+                <Layers className="w-4 h-4" /> {run.run_id}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-4 h-4" /> Started: {formatTimestamp(run.start_time || (run.events[0]?.timestamp as any))}
+              </span>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col md:flex-row gap-6 min-h-0">
-        {/* Timeline Event View */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="mb-4 sticky top-0 z-10 bg-gray-50 pt-2 pb-4">
-            <TimelineScrubber 
-              events={run.events} 
-              currentIndex={currentIndex} 
-              onIndexChange={setCurrentIndex} 
-            />
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* Left Column: Timeline & Events */}
+        <div className="w-2/3 flex flex-col border-r border-gray-200 bg-gray-50/50">
+          
+          {/* Search & Filter Bar */}
+          <div className="p-4 bg-white border-b border-gray-200 flex items-center gap-4 shrink-0">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search logs, arguments, or results..."
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-gray-400" />
+              <select
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md transition duration-150 ease-in-out"
+                value={eventTypeFilter}
+                onChange={(e) => setEventTypeFilter(e.target.value)}
+              >
+                <option value="all">All Events</option>
+                <option value="reasoning">Reasoning</option>
+                <option value="tool_call">Tool Calls</option>
+                <option value="tool_result">Tool Results</option>
+                <option value="state_change">State Changes</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
+            <div className="max-w-3xl mx-auto pb-32">
+              {filteredEvents.length === 0 ? (
+                <div className="text-center py-12 text-gray-500 bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <Search className="mx-auto h-12 w-12 text-gray-300 mb-3" />
+                  <h3 className="text-lg font-medium text-gray-900">No events found</h3>
+                  <p className="mt-1">Try adjusting your search or filter criteria.</p>
+                </div>
+              ) : (
+                filteredEvents.map((event) => {
+                  const originalIndex = run.events.findIndex(e => e === event);
+                  return (
+                    <EventCard 
+                      key={originalIndex} 
+                      event={event}
+                      eventIndex={originalIndex}
+                      isFuture={originalIndex > currentIndex}
+                      isActive={originalIndex === currentIndex}
+                      onClick={() => setCurrentIndex(originalIndex)}
+                    />
+                  );
+                })
+              )}
+            </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto pr-2 pb-20 space-y-4">
-            {run.events.map((event, index) => (
-              <div key={event.id || index} ref={el => eventRefs.current[index] = el}>
-                <EventCard
-                  event={event}
-                  eventIndex={index}
-                  isActive={index === currentIndex}
-                  isFuture={index > currentIndex}
-                  onClick={() => setCurrentIndex(index)}
-                />
-              </div>
-            ))}
-            {run.events.length === 0 && (
-              <div className="text-center text-gray-500 py-10 bg-white border border-gray-200 rounded-lg">
-                No events recorded for this run.
-              </div>
-            )}
+          {/* Timeline Scrubber */}
+          <div className="bg-white border-t border-gray-200 p-4 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] relative z-20">
+            <TimelineScrubber 
+              totalEvents={run.events.length}
+              currentIndex={currentIndex}
+              onChange={setCurrentIndex}
+              isPlaying={isPlaying}
+              onTogglePlay={() => setIsPlaying(!isPlaying)}
+            />
           </div>
         </div>
 
-        {/* State Viewer Sidebar */}
-        <div className="w-full md:w-96 flex-none">
-          <div className="sticky top-24 h-[calc(100vh-8rem)]">
-            <StateViewer events={run.events} currentIndex={currentIndex} />
-          </div>
+        {/* Right Column: State Viewer */}
+        <div className="w-1/3 bg-white overflow-y-auto z-10 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)]">
+          <StateViewer 
+            state={currentState} 
+            stepIndex={currentIndex} 
+            totalSteps={run.events.length} 
+          />
         </div>
-      </main>
+
+      </div>
     </div>
   );
-};
-
-export default TraceDetails;
+}
