@@ -7,7 +7,7 @@
     "TypeScript",
     "Python"
   ],
-  "current_phase": "Implement Phase 7: Advanced Search, Filtering, and Export/Import capabilities",
+  "current_phase": "Implement CrewAI integration for the Python SDK to support Phase 6 of the roadmap",
   "maturity_level": "early",
   "completed_milestones": [],
   "planned_next_steps": [
@@ -138,15 +138,16 @@
     },
     {
       "date": "2026-03-19",
-      "summary": "Implement Phase 7: Advanced Search, Filtering, and Export/Import capabilities",
+      "summary": "Implement CrewAI integration for the Python SDK to support Phase 6 of the roadmap",
       "files_changed": [
-        "frontend/src/api.ts",
-        "frontend/src/pages/Dashboard.tsx",
-        "frontend/src/pages/TraceDetails.tsx",
-        "frontend/src/api.ts",
-        "frontend/src/pages/Dashboard.tsx"
+        "sdk/python/agent_trace/integrations/crewai.py",
+        "sdk/python/agent_trace/integrations/__init__.py",
+        "sdk/python/requirements.txt",
+        "sdk/python/tests/test_crewai.py",
+        "sdk/python/example_crewai.py",
+        "README.md"
       ],
-      "requests_used": 17
+      "requests_used": 37
     }
   ],
   "open_questions": [],

@@ -62,9 +62,9 @@
     "README.md": {
       "type": "non-python",
       "extension": ".md",
-      "size_bytes": 5442,
+      "size_bytes": 5356,
       "description": "",
-      "purpose": "Provides an overview, feature list, setup instructions, and usage examples for the AgentTrace project."
+      "purpose": "Provides project documentation, feature lists, setup instructions, and usage examples for the AgentTrace debugging tool."
     },
     "frontend/index.html": {
       "type": "non-python",
@@ -951,16 +951,16 @@
     "server/src/db.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 2569,
+      "size_bytes": 4907,
       "description": "",
-      "purpose": "Manages the SQLite database connection, schema initialization, and queries for storing and retrieving agent trace events."
+      "purpose": "Configures the SQLite database and provides schemas and functions to manage agent trace event records."
     },
     "server/src/index.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 1139,
+      "size_bytes": 3673,
       "description": "",
-      "purpose": "The main Express server application that initializes the database, exposes endpoints to ingest trace events, and serves them to the frontend."
+      "purpose": "Sets up the Express server API endpoints to ingest and retrieve agent trace events."
     },
     "server/src/schema.ts": {
       "type": "non-python",
