@@ -71,9 +71,42 @@ export function insertEvent(event: AgentEvent) {
   );
 }
 
-export function getEvents(options: { search?: string; event_type?: string; limit?: number; offset?: number } = {}) {
+export function insertEvents(events: AgentEvent[]) {
+  const stmt = db.prepare(`
+    INSERT INTO events (
+      event_id, project_name, run_id, parent_id, agent, event_type, data, timestamp
+    ) VALUES (
+      ?, ?, ?, ?, ?, ?, ?, ?
+    )
+    ON CONFLICT(event_id) DO NOTHING
+  `);
+  
+  const insertMany = db.transaction((eventsToInsert: AgentEvent[]) => {
+    for (const event of eventsToInsert) {
+      stmt.run(
+        event.event_id,
+        event.project_name,
+        event.run_id || null,
+        event.parent_id || null,
+        event.agent,
+        event.event_type,
+        JSON.stringify(event.data),
+        event.timestamp
+      );
+    }
+  });
+
+  insertMany(events);
+}
+
+export function getEvents(options: { search?: string; event_type?: string; limit?: number; offset?: number; run_id?: string } = {}) {
   let queryStr = `SELECT * FROM events WHERE 1=1`;
   const params: any[] = [];
+
+  if (options.run_id) {
+    queryStr += ` AND run_id = ?`;
+    params.push(options.run_id);
+  }
 
   if (options.event_type) {
     queryStr += ` AND event_type = ?`;
@@ -101,9 +134,6 @@ export function getEvents(options: { search?: string; event_type?: string; limit
 }
 
 export function getGroupedRuns(options: { limit?: number; offset?: number; project_name?: string; search?: string; event_type?: string } = {}) {
-  const limit = options.limit ?? 100;
-  const offset = options.offset ?? 0;
-  
   let queryStr = `
     SELECT 
       run_id,
@@ -117,53 +147,34 @@ export function getGroupedRuns(options: { limit?: number; offset?: number; proje
   const params: any[] = [];
 
   if (options.project_name) {
-    queryStr += ' AND project_name = ?';
+    queryStr += ` AND project_name = ?`;
     params.push(options.project_name);
   }
 
-  if (options.search || options.event_type) {
-    queryStr += ` AND run_id IN (SELECT DISTINCT run_id FROM events WHERE run_id IS NOT NULL`;
-    if (options.event_type) {
-      queryStr += ` AND event_type = ?`;
-      params.push(options.event_type);
-    }
-    if (options.search) {
-      queryStr += ` AND (data LIKE ? OR agent LIKE ? OR event_id LIKE ?)`;
-      const term = `%${options.search}%`;
-      params.push(term, term, term);
-    }
-    queryStr += `)`;
+  if (options.event_type) {
+    queryStr += ` AND run_id IN (SELECT DISTINCT run_id FROM events WHERE event_type = ?)`;
+    params.push(options.event_type);
+  }
+
+  if (options.search) {
+    const term = `%${options.search}%`;
+    queryStr += ` AND run_id IN (SELECT DISTINCT run_id FROM events WHERE data LIKE ? OR agent LIKE ? OR project_name LIKE ?)`;
+    params.push(term, term, term);
   }
 
   queryStr += `
     GROUP BY run_id, project_name
     ORDER BY MAX(timestamp) DESC
-    LIMIT ? OFFSET ?
   `;
-  params.push(limit, offset);
 
-  return db.prepare(queryStr).all(...params);
-}
-
-export function getTraceEvents(runId: string, options: { search?: string; event_type?: string } = {}) {
-  let queryStr = `
-    SELECT * FROM events
-    WHERE run_id = ?
-  `;
-  const params: any[] = [runId];
-
-  if (options.event_type) {
-    queryStr += ` AND event_type = ?`;
-    params.push(options.event_type);
+  if (options.limit !== undefined) {
+    queryStr += ` LIMIT ?`;
+    params.push(options.limit);
+    if (options.offset !== undefined) {
+      queryStr += ` OFFSET ?`;
+      params.push(options.offset);
+    }
   }
-
-  if (options.search) {
-    queryStr += ` AND (data LIKE ? OR agent LIKE ? OR event_id LIKE ?)`;
-    const term = `%${options.search}%`;
-    params.push(term, term, term);
-  }
-
-  queryStr += ` ORDER BY timestamp ASC`;
 
   return db.prepare(queryStr).all(...params);
 }
