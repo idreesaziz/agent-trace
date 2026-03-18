@@ -79,6 +79,74 @@ response = agent_executor.invoke(
 )
 
 print(f"Agent response: {response['output']}")
+```
 
-# The tracer will flush automatically on exit, or you can call flush explicitly
-tracer.flush()
+### Framework Integrations: CrewAI (Drop-In)
+
+AgentTrace provides a native step callback handler for CrewAI. This intercepts agent steps and automatically logs reasoning, tool execution, and tool results natively.
+
+**Example: Tracing a CrewAI Multi-Agent Swarm**
+
+```python
+import os
+from crewai import Agent, Task, Crew, Process
+from langchain_openai import ChatOpenAI
+from langchain.tools import tool
+
+from agent_trace import Tracer
+from agent_trace.integrations.crewai import CrewAIStepCallbackHandler
+
+# 1. Initialize the Tracer
+tracer = Tracer(project_name="crewai_demo")
+
+# 2. Define a simple tool
+@tool
+def get_weather(location: str) -> str:
+    """Get the current weather for a location."""
+    return f"The weather in {location} is 72°F and sunny."
+
+# 3. Create the Agents, attaching the CrewAIStepCallbackHandler
+researcher = Agent(
+    role='Weather Researcher',
+    goal='Find the current weather for given locations',
+    backstory='An expert in gathering weather data from around the world.',
+    verbose=True,
+    allow_delegation=False,
+    tools=[get_weather],
+    llm=ChatOpenAI(model="gpt-4", temperature=0),
+    step_callback=CrewAIStepCallbackHandler(tracer, agent_name="Researcher")
+)
+
+writer = Agent(
+    role='Weather Reporter',
+    goal='Write a short report about the weather',
+    backstory='A skilled writer who crafts engaging weather reports.',
+    verbose=True,
+    allow_delegation=False,
+    llm=ChatOpenAI(model="gpt-4", temperature=0),
+    step_callback=CrewAIStepCallbackHandler(tracer, agent_name="Writer")
+)
+
+# 4. Create Tasks
+task1 = Task(
+    description='Find out what the weather is like in Tokyo.',
+    expected_output='A brief statement of the weather in Tokyo.',
+    agent=researcher
+)
+
+task2 = Task(
+    description='Write a 2-sentence weather report based on the researcher\'s findings.',
+    expected_output='A 2-sentence weather report.',
+    agent=writer
+)
+
+# 5. Form the Crew and kick off the process
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[task1, task2],
+    process=Process.sequential
+)
+
+print("Running CrewAI swarm...")
+result = crew.kickoff()
+print("Final Result:", result)
