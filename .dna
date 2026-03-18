@@ -97,9 +97,9 @@
     "frontend/src/api.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 6228,
+      "size_bytes": 4484,
       "description": "",
-      "purpose": "Provides API utility functions to fetch and filter agent trace events from the backend server."
+      "purpose": "Handles API communication with the backend for fetching and filtering agent trace events."
     },
     "frontend/src/App.tsx": {
       "type": "non-python",
@@ -153,9 +153,9 @@
     "frontend/src/pages/Dashboard.tsx": {
       "type": "non-python",
       "extension": ".tsx",
-      "size_bytes": 11295,
+      "size_bytes": 9492,
       "description": "",
-      "purpose": "Defines the main dashboard page component for viewing, filtering, exporting, and importing agent runs."
+      "purpose": "Renders the main dashboard UI to view, search, filter, export, and import agent runs."
     },
     "frontend/src/pages/TraceDetails.tsx": {
       "type": "non-python",
@@ -1087,16 +1087,16 @@
     "server/src/db.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 5141,
+      "size_bytes": 4690,
       "description": "",
-      "purpose": "Manages the SQLite database connection, schema initialization, and event insertion operations for the tracing server."
+      "purpose": "Manages the SQLite database connection, schema initialization, and data insertion for agent events."
     },
     "server/src/index.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 4254,
+      "size_bytes": 5993,
       "description": "",
-      "purpose": "Sets up the Express server application and defines the REST API endpoints for ingesting and retrieving agent trace events."
+      "purpose": "Sets up the Express server and defines API endpoints for ingesting and retrieving agent trace events."
     },
     "server/src/schema.ts": {
       "type": "non-python",
