@@ -62,9 +62,9 @@
     "README.md": {
       "type": "non-python",
       "extension": ".md",
-      "size_bytes": 3232,
+      "size_bytes": 5442,
       "description": "",
-      "purpose": "Provides an overview, feature list, setup instructions, and basic usage examples for the AgentTrace universal local debugger and visualizer."
+      "purpose": "Provides an overview, feature list, setup instructions, and usage examples for the AgentTrace project."
     },
     "frontend/index.html": {
       "type": "non-python",
@@ -97,9 +97,9 @@
     "frontend/src/api.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 3423,
+      "size_bytes": 6456,
       "description": "",
-      "purpose": "Provides TypeScript types and network fetching utilities for interacting with the backend tracing API."
+      "purpose": "Defines utility functions and API client methods for fetching, normalizing, and filtering agent trace data from the backend."
     },
     "frontend/src/App.tsx": {
       "type": "non-python",
@@ -153,16 +153,16 @@
     "frontend/src/pages/Dashboard.tsx": {
       "type": "non-python",
       "extension": ".tsx",
-      "size_bytes": 5433,
+      "size_bytes": 11146,
       "description": "",
-      "purpose": "Displays a high-level dashboard of all recorded agent runs, allowing users to browse and select traces to inspect."
+      "purpose": "Implements the main dashboard UI component for viewing, filtering, loading, and exporting agent runs."
     },
     "frontend/src/pages/TraceDetails.tsx": {
       "type": "non-python",
       "extension": ".tsx",
-      "size_bytes": 10864,
+      "size_bytes": 15469,
       "description": "",
-      "purpose": "Renders the trace details page to inspect specific agent runs, utilizing custom hooks to reconstruct and display cumulative agent states."
+      "purpose": "Renders a detailed view of a specific agent run featuring a timeline scrubber, event cards, and dynamic state reconstruction."
     },
     "sdk/python/example.py": {
       "functions": {
@@ -181,6 +181,25 @@
         "time"
       ],
       "purpose": "Demonstrates how to use the AgentTrace SDK to log agent execution steps like reasoning, tool calls, and state changes."
+    },
+    "sdk/python/example_crewai.py": {
+      "functions": {
+        "main": {
+          "signature": "main()",
+          "decorators": [],
+          "line": 21,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "os",
+        "sys"
+      ],
+      "purpose": "Demonstrates how to integrate the AgentTrace SDK into a CrewAI script to trace a multi-agent workflow."
     },
     "sdk/python/example_langchain.py": {
       "functions": {
@@ -213,9 +232,9 @@
     "sdk/python/requirements.txt": {
       "type": "non-python",
       "extension": ".txt",
-      "size_bytes": 71,
+      "size_bytes": 79,
       "description": "",
-      "purpose": "Specifies the required Python package dependencies and versions for the AgentTrace SDK and its integrations."
+      "purpose": "Lists the Python package dependencies required to install and run the AgentTrace SDK."
     },
     "sdk/python/agent_trace/models.py": {
       "functions": {},
@@ -458,6 +477,59 @@
       ],
       "purpose": "Implements the Python SDK's Tracer client and dataclasses for asynchronously logging agent events to the local server."
     },
+    "sdk/python/agent_trace/integrations/crewai.py": {
+      "functions": {},
+      "classes": {
+        "CrewAIStepCallbackHandler": {
+          "bases": [],
+          "decorators": [],
+          "methods": {
+            "__init__": {
+              "signature": "__init__(self, tracer: Tracer, agent_name: str='crewai_agent')",
+              "decorators": [],
+              "line": 29,
+              "description": "Initializes the callback handler with an active tracer instance and an optional agent name."
+            },
+            "__call__": {
+              "signature": "__call__(self, step: Any) -> None",
+              "decorators": [],
+              "line": 33,
+              "description": "A callable interface allowing the instance to be directly assigned as a step callback in CrewAI."
+            },
+            "_process_step": {
+              "signature": "_process_step(self, step: Any) -> None",
+              "decorators": [],
+              "line": 46,
+              "description": "Evaluates a single agent step to extract and log reasoning strings, tool usages, and observations."
+            },
+            "_extract_field": {
+              "signature": "_extract_field(self, obj: Any, fields: List[str]) -> Any",
+              "decorators": [],
+              "line": 101,
+              "description": "Dynamically retrieves a specific field from various data structures like Pydantic models, dicts, or objects."
+            },
+            "_parse_tool_input": {
+              "signature": "_parse_tool_input(self, tool_input: Any) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 120,
+              "description": "Parses and normalizes raw tool input arguments into a standard dictionary."
+            }
+          },
+          "class_attributes": {},
+          "line": 9,
+          "description": "A callback class that intercepts CrewAI agent steps and maps them to AgentTrace events like Reasoning, ToolCall, and ToolResult."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "purpose": "Provides a callback handler to integrate AgentTrace with the CrewAI framework by mapping agent steps to telemetry events."
+    },
     "sdk/python/agent_trace/integrations/langchain.py": {
       "functions": {},
       "classes": {
@@ -559,6 +631,66 @@
         "langchain"
       ],
       "external_imports": []
+    },
+    "sdk/python/tests/test_crewai.py": {
+      "functions": {
+        "test_string_step_logged_as_reasoning": {
+          "signature": "test_string_step_logged_as_reasoning()",
+          "decorators": [],
+          "line": 25,
+          "description": ""
+        },
+        "test_tuple_step_success": {
+          "signature": "test_tuple_step_success()",
+          "decorators": [],
+          "line": 40,
+          "description": ""
+        },
+        "test_tuple_step_error_heuristic": {
+          "signature": "test_tuple_step_error_heuristic()",
+          "decorators": [],
+          "line": 76,
+          "description": ""
+        },
+        "test_dict_step": {
+          "signature": "test_dict_step()",
+          "decorators": [],
+          "line": 101,
+          "description": ""
+        },
+        "test_list_of_steps": {
+          "signature": "test_list_of_steps()",
+          "decorators": [],
+          "line": 125,
+          "description": ""
+        }
+      },
+      "classes": {
+        "MockAgentAction": {
+          "bases": [],
+          "decorators": [],
+          "methods": {
+            "__init__": {
+              "signature": "__init__(self, log=None, tool=None, tool_input=None, text=None, result=None)",
+              "decorators": [],
+              "line": 17,
+              "description": "Initializes the mocked action with specific attributes for logs, tools, inputs, and results."
+            }
+          },
+          "class_attributes": {},
+          "line": 15,
+          "description": "A mock data structure used to simulate the properties of an AgentAction from LangChain or CrewAI."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "pytest",
+        "unittest"
+      ],
+      "purpose": "Contains unit tests to verify the CrewAI callback handler correctly interprets and logs various agent step formats."
     },
     "sdk/python/tests/test_langchain.py": {
       "functions": {
