@@ -83,118 +83,68 @@ export async function fetchAgentRuns(filters?: FilterOptions): Promise<AgentRun[
 
   const queryString = params.toString() ? `?${params.toString()}` : '';
   
-  try {
-    const response = await fetch(`/api/runs${queryString}`);
-    
-    if (response.ok) {
-      const runData = await response.json();
-      
-      return runData.map((r: any) => ({
-        run_id: r.run_id,
-        project_name: r.project_name,
-        agent: r.agent || 'Multiple', // Fallback as /api/runs might not return agent
-        start_time: r.start_time,
-        end_time: r.end_time,
-        event_count: r.total_events,
-        events: [] // Will be populated when fetching a specific run
-      }));
-    } else {
-      throw new Error(`Failed to fetch runs: ${response.status} ${response.statusText}`);
+  const response = await fetch(`/api/runs${queryString}`);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch runs: ${response.status} ${response.statusText}`);
+  }
+  
+  const runData = await response.json();
+  
+  return runData.map((r: any) => ({
+    run_id: r.run_id,
+    project_name: r.project_name,
+    agent: r.agent || 'Multiple', // Fallback as /api/runs might not include agent
+    start_time: r.start_time,
+    end_time: r.end_time,
+    event_count: r.total_events,
+    events: []
+  }));
+}
+
+/**
+ * Export events to a JSON file format.
+ */
+export async function exportEvents(runId?: string): Promise<AgentEvent[]> {
+  const params = new URLSearchParams();
+  if (runId) {
+    params.append('run_id', runId);
+  }
+  
+  const queryString = params.toString() ? `?${params.toString()}` : '';
+  const response = await fetch(`/api/export${queryString}`);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to export events: ${response.status} ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+
+/**
+ * Bulk import events.
+ */
+export async function importEvents(events: AgentEvent[]): Promise<{ success: boolean; count?: number }> {
+  const response = await fetch('/api/import', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(events)
+  });
+
+  if (!response.ok) {
+    let errorMsg = `Failed to import events: ${response.status} ${response.statusText}`;
+    try {
+      const data = await response.json();
+      if (data && data.error) {
+        errorMsg = `Failed to import events: ${data.error}`;
+      }
+    } catch (e) {
+      // Ignore if response is not JSON
     }
-  } catch (err) {
-    console.error('Failed to fetch agent runs:', err);
-    throw err;
-  }
-}
-
-/**
- * Fetch a single agent run by ID, including all of its events.
- */
-export async function fetchRunById(runId: string): Promise<AgentRun | null> {
-  try {
-    const events = await fetchEvents({ runId });
-    
-    if (!events || events.length === 0) {
-      return null;
-    }
-    
-    // Ensure chronological order
-    const sortedEvents = [...events].sort((a, b) => getTimestampMs(a.timestamp) - getTimestampMs(b.timestamp));
-    const firstEvent = sortedEvents[0];
-    const lastEvent = sortedEvents[sortedEvents.length - 1];
-    
-    return {
-      run_id: runId,
-      project_name: firstEvent.project_name,
-      agent: firstEvent.agent,
-      start_time: firstEvent.timestamp as string,
-      end_time: lastEvent.timestamp as string,
-      event_count: sortedEvents.length,
-      events: sortedEvents
-    };
-  } catch (err) {
-    console.error(`Error fetching run ${runId}:`, err);
-    throw err;
-  }
-}
-
-/**
- * Helper to trigger download of events as JSON
- */
-export function downloadEventsAsJson(events: AgentEvent[], filename: string): void {
-  const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-/**
- * Export all events for a specific run as a JSON file
- */
-export async function exportRunEvents(runId: string): Promise<void> {
-  const events = await fetchEvents({ runId });
-  if (!events || events.length === 0) {
-    throw new Error(`No events found for run ${runId}`);
-  }
-  const filename = `agent-trace-${runId}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-  downloadEventsAsJson(events, filename);
-}
-
-/**
- * Import an array of trace events
- */
-export async function importTraceEvents(events: AgentEvent[]): Promise<void> {
-  try {
-    const response = await fetch('/api/trace/bulk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(events.map((ev: any) => {
-        const { id, ...eventData } = ev; // strip id for auto-increment
-        return eventData;
-      }))
-    });
-    if (response.ok) return;
-  } catch (err) {
-    // Fallback to individual POSTs if bulk fails
+    throw new Error(errorMsg);
   }
 
-  for (const ev of events) {
-    const { id, ...eventData } = ev as any;
-    const res = await fetch('/api/trace', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(eventData)
-    });
-    
-    if (!res.ok) {
-      throw new Error(`Failed to import event: ${res.statusText}`);
-    }
-  }
+  return response.json();
 }
