@@ -3,6 +3,7 @@ import { AgentEvent, AgentRun } from './types';
 export interface FilterOptions {
   search?: string;
   eventType?: string;
+  runId?: string;
 }
 
 /**
@@ -27,6 +28,9 @@ export async function fetchEvents(filters?: FilterOptions): Promise<AgentEvent[]
   if (filters?.search) {
     params.append('search', filters.search);
   }
+  if (filters?.runId) {
+    params.append('run_id', filters.runId);
+  }
   
   const queryString = params.toString() ? `?${params.toString()}` : '';
   const response = await fetch(`/api/events${queryString}`);
@@ -40,6 +44,9 @@ export async function fetchEvents(filters?: FilterOptions): Promise<AgentEvent[]
   // Client-side fallback filtering in case backend doesn't support query parameters yet
   if (filters?.eventType && filters.eventType !== 'all') {
     events = events.filter(e => e.event_type === filters.eventType);
+  }
+  if (filters?.runId) {
+    events = events.filter(e => e.run_id === filters.runId);
   }
   if (filters?.search) {
     const term = filters.search.toLowerCase();
@@ -63,10 +70,41 @@ export async function fetchEvents(filters?: FilterOptions): Promise<AgentEvent[]
 }
 
 /**
- * Fetch all agent runs, grouping individual events by their run_id.
+ * Fetch all agent runs, optionally filtering by search or event type.
  */
-export async function fetchAgentRuns(): Promise<AgentRun[]> {
-  const events = await fetchEvents();
+export async function fetchAgentRuns(filters?: FilterOptions): Promise<AgentRun[]> {
+  const params = new URLSearchParams();
+  if (filters?.eventType && filters.eventType !== 'all') {
+    params.append('event_type', filters.eventType);
+  }
+  if (filters?.search) {
+    params.append('search', filters.search);
+  }
+
+  const queryString = params.toString() ? `?${params.toString()}` : '';
+  
+  try {
+    const response = await fetch(`/api/runs${queryString}`);
+    
+    if (response.ok) {
+      const runData = await response.json();
+      
+      return runData.map((r: any) => ({
+        run_id: r.run_id,
+        project_name: r.project_name,
+        agent: r.agent || 'Multiple', // Fallback as /api/runs might not return agent
+        start_time: r.start_time,
+        end_time: r.end_time,
+        event_count: r.total_events,
+        events: [] 
+      }));
+    }
+  } catch (err) {
+    // Ignore fetch errors to gracefully fallback to old logic
+  }
+
+  // Fallback to fetchEvents and manual grouping if /api/runs is unavailable
+  const events = await fetchEvents(filters);
   
   const runMap = new Map<string, AgentEvent[]>();
   for (const event of events) {
@@ -101,106 +139,4 @@ export async function fetchAgentRuns(): Promise<AgentRun[]> {
   runs.sort((a, b) => getTimestampMs(b.start_time) - getTimestampMs(a.start_time));
   
   return runs;
-}
-
-/**
- * Fetch trace events for a specific agent run ID from the backend API.
- */
-export async function fetchRunById(runId: string): Promise<AgentRun | null> {
-  const response = await fetch(`/api/events?run_id=${encodeURIComponent(runId)}`);
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch run: ${response.status} ${response.statusText}`);
-  }
-  
-  const events: AgentEvent[] = await response.json();
-  
-  // Fallback in case the backend doesn't filter by run_id yet
-  const runEvents = events.filter(e => e.run_id === runId);
-  
-  if (runEvents.length === 0) {
-    return null;
-  }
-  
-  runEvents.sort((a, b) => getTimestampMs(a.timestamp) - getTimestampMs(b.timestamp));
-  
-  // Safely calculate min and max timestamps using reduce to avoid Call Stack Exceeded limits on large arrays
-  const minTs = runEvents.reduce((min, e) => {
-    const ts = getTimestampMs(e.timestamp);
-    return ts < min ? ts : min;
-  }, getTimestampMs(runEvents[0].timestamp));
-
-  const maxTs = runEvents.reduce((max, e) => {
-    const ts = getTimestampMs(e.timestamp);
-    return ts > max ? ts : max;
-  }, getTimestampMs(runEvents[0].timestamp));
-
-  const minEvent = runEvents.find(e => getTimestampMs(e.timestamp) === minTs) || runEvents[0];
-  const maxEvent = runEvents.find(e => getTimestampMs(e.timestamp) === maxTs) || runEvents[runEvents.length - 1];
-
-  return {
-    run_id: runId,
-    project_name: runEvents[0].project_name,
-    agent: runEvents[0].agent,
-    start_time: minEvent.timestamp,
-    end_time: maxEvent.timestamp,
-    event_count: runEvents.length,
-    events: runEvents
-  };
-}
-
-/**
- * Fetch trace events for a specific agent run ID returning just the events.
- */
-export async function fetchEventsByRunId(runId: string): Promise<AgentEvent[]> {
-  const run = await fetchRunById(runId);
-  return run ? run.events : [];
-}
-
-/**
- * Uploads/Restores bulk trace events to the backend.
- */
-export async function importTraces(events: AgentEvent[]): Promise<void> {
-  const response = await fetch('/api/events/bulk', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(events)
-  });
-  
-  if (!response.ok) {
-    throw new Error(response.statusText || 'Failed to import traces');
-  }
-}
-
-/**
- * Exports runs to a JSON file and triggers a browser download.
- */
-export async function exportTraces(runId?: string): Promise<void> {
-  let events: AgentEvent[] = [];
-  
-  if (runId) {
-    const run = await fetchRunById(runId);
-    if (run) {
-      events = run.events;
-    }
-  } else {
-    events = await fetchEvents();
-  }
-  
-  const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  
-  // Create a file-friendly timestamp string using native JavaScript date methods
-  const timestampStr = new Date().toISOString().replace(/[:.]/g, '-');
-  a.download = runId ? `trace-${runId}-${timestampStr}.json` : `traces-${timestampStr}.json`;
-  
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
