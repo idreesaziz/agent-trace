@@ -97,9 +97,9 @@
     "frontend/src/api.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 6456,
+      "size_bytes": 6228,
       "description": "",
-      "purpose": "Defines utility functions and API client methods for fetching, normalizing, and filtering agent trace data from the backend."
+      "purpose": "Provides frontend API client utilities to fetch, filter, and normalize trace events from the backend server."
     },
     "frontend/src/App.tsx": {
       "type": "non-python",
@@ -153,16 +153,16 @@
     "frontend/src/pages/Dashboard.tsx": {
       "type": "non-python",
       "extension": ".tsx",
-      "size_bytes": 11146,
+      "size_bytes": 11295,
       "description": "",
-      "purpose": "Implements the main dashboard UI component for viewing, filtering, loading, and exporting agent runs."
+      "purpose": "Renders the main dashboard interface for viewing, filtering, and exporting recent agent execution runs."
     },
     "frontend/src/pages/TraceDetails.tsx": {
       "type": "non-python",
       "extension": ".tsx",
-      "size_bytes": 15469,
+      "size_bytes": 12736,
       "description": "",
-      "purpose": "Renders a detailed view of a specific agent run featuring a timeline scrubber, event cards, and dynamic state reconstruction."
+      "purpose": "Displays the detailed timeline, state changes, and events for a specific agent trace run."
     },
     "sdk/python/example.py": {
       "functions": {
@@ -181,6 +181,39 @@
         "time"
       ],
       "purpose": "Demonstrates how to use the AgentTrace SDK to log agent execution steps like reasoning, tool calls, and state changes."
+    },
+    "sdk/python/example_autogen.py": {
+      "functions": {
+        "instrument_agent": {
+          "signature": "instrument_agent(agent: ConversableAgent, tracer: Tracer) -> None",
+          "decorators": [],
+          "line": 61,
+          "description": ""
+        },
+        "calculator": {
+          "signature": "calculator(a: Annotated[int, 'The first number'], b: Annotated[int, 'The second number'], operator: Annotated[str, 'The mathematical operator (+, -, *, /)']) -> str",
+          "decorators": [],
+          "line": 173,
+          "description": ""
+        },
+        "main": {
+          "signature": "main()",
+          "decorators": [],
+          "line": 193,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "os",
+        "sys",
+        "typing"
+      ],
+      "purpose": "Demonstrates how to manually instrument a multi-agent AutoGen workflow to capture traces using AgentTrace."
     },
     "sdk/python/example_crewai.py": {
       "functions": {
@@ -232,9 +265,9 @@
     "sdk/python/requirements.txt": {
       "type": "non-python",
       "extension": ".txt",
-      "size_bytes": 79,
+      "size_bytes": 90,
       "description": "",
-      "purpose": "Lists the Python package dependencies required to install and run the AgentTrace SDK."
+      "purpose": "Lists the required Python package dependencies for running the AgentTrace SDK and its supported framework integrations."
     },
     "sdk/python/agent_trace/models.py": {
       "functions": {},
@@ -477,6 +510,47 @@
       ],
       "purpose": "Implements the Python SDK's Tracer client and dataclasses for asynchronously logging agent events to the local server."
     },
+    "sdk/python/agent_trace/integrations/autogen.py": {
+      "functions": {},
+      "classes": {
+        "AutoGenCallbackHandler": {
+          "bases": [],
+          "decorators": [],
+          "methods": {
+            "__init__": {
+              "signature": "__init__(self, tracer: Tracer)",
+              "decorators": [],
+              "line": 28,
+              "description": ""
+            },
+            "instrument_agent": {
+              "signature": "instrument_agent(self, agent: Any) -> None",
+              "decorators": [],
+              "line": 31,
+              "description": ""
+            },
+            "_process_message": {
+              "signature": "_process_message(self, agent_name: str, message: Union[Dict[str, Any], str]) -> None",
+              "decorators": [],
+              "line": 53,
+              "description": ""
+            }
+          },
+          "class_attributes": {},
+          "line": 9,
+          "description": "Provides integration with AutoGen by instrumenting ConversableAgents to capture their internal processes."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "purpose": "Provides a callback handler to instrument AutoGen agents and intercept their messages for tracing."
+    },
     "sdk/python/agent_trace/integrations/crewai.py": {
       "functions": {},
       "classes": {
@@ -631,6 +705,68 @@
         "langchain"
       ],
       "external_imports": []
+    },
+    "sdk/python/tests/test_autogen.py": {
+      "functions": {
+        "extract_log_args": {
+          "signature": "extract_log_args(call)",
+          "decorators": [],
+          "line": 15,
+          "description": ""
+        },
+        "test_string_message_logs_reasoning": {
+          "signature": "test_string_message_logs_reasoning()",
+          "decorators": [],
+          "line": 24,
+          "description": ""
+        },
+        "test_dict_message_with_content": {
+          "signature": "test_dict_message_with_content()",
+          "decorators": [],
+          "line": 39,
+          "description": ""
+        },
+        "test_tool_result_message": {
+          "signature": "test_tool_result_message()",
+          "decorators": [],
+          "line": 55,
+          "description": ""
+        },
+        "test_tool_result_error_heuristic": {
+          "signature": "test_tool_result_error_heuristic()",
+          "decorators": [],
+          "line": 73,
+          "description": ""
+        },
+        "test_message_with_tool_calls": {
+          "signature": "test_message_with_tool_calls()",
+          "decorators": [],
+          "line": 91,
+          "description": ""
+        },
+        "test_message_with_function_call": {
+          "signature": "test_message_with_function_call()",
+          "decorators": [],
+          "line": 120,
+          "description": ""
+        },
+        "test_message_with_content_and_tool_call": {
+          "signature": "test_message_with_content_and_tool_call()",
+          "decorators": [],
+          "line": 144,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "pytest",
+        "unittest"
+      ],
+      "purpose": "Contains unit tests to ensure the AutoGen integration correctly intercepts and formats various agent message types."
     },
     "sdk/python/tests/test_crewai.py": {
       "functions": {
@@ -951,16 +1087,16 @@
     "server/src/db.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 4907,
+      "size_bytes": 5141,
       "description": "",
-      "purpose": "Configures the SQLite database and provides schemas and functions to manage agent trace event records."
+      "purpose": "Configures the SQLite database schema and provides functions to insert and store trace events persistently."
     },
     "server/src/index.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 3673,
+      "size_bytes": 4254,
       "description": "",
-      "purpose": "Sets up the Express server API endpoints to ingest and retrieve agent trace events."
+      "purpose": "Initializes the Express server and defines REST API endpoints for ingesting and querying agent trace events."
     },
     "server/src/schema.ts": {
       "type": "non-python",

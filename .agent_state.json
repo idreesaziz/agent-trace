@@ -7,7 +7,7 @@
     "TypeScript",
     "Python"
   ],
-  "current_phase": "Implement CrewAI integration for the Python SDK to support Phase 6 of the roadmap",
+  "current_phase": "Implement AutoGen integration for the Python SDK to complete Phase 6 framework support",
   "maturity_level": "early",
   "completed_milestones": [],
   "planned_next_steps": [
@@ -148,6 +148,18 @@
         "README.md"
       ],
       "requests_used": 37
+    },
+    {
+      "date": "2026-03-19",
+      "summary": "Implement AutoGen integration for the Python SDK to complete Phase 6 framework support",
+      "files_changed": [
+        "sdk/python/agent_trace/integrations/autogen.py",
+        "sdk/python/agent_trace/integrations/__init__.py",
+        "sdk/python/requirements.txt",
+        "sdk/python/tests/test_autogen.py",
+        "sdk/python/example_autogen.py"
+      ],
+      "requests_used": 26
     }
   ],
   "open_questions": [],
