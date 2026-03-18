@@ -99,7 +99,7 @@
       "extension": ".ts",
       "size_bytes": 6228,
       "description": "",
-      "purpose": "Provides frontend API client utilities to fetch, filter, and normalize trace events from the backend server."
+      "purpose": "Provides API utility functions to fetch and filter agent trace events from the backend server."
     },
     "frontend/src/App.tsx": {
       "type": "non-python",
@@ -155,14 +155,14 @@
       "extension": ".tsx",
       "size_bytes": 11295,
       "description": "",
-      "purpose": "Renders the main dashboard interface for viewing, filtering, and exporting recent agent execution runs."
+      "purpose": "Defines the main dashboard page component for viewing, filtering, exporting, and importing agent runs."
     },
     "frontend/src/pages/TraceDetails.tsx": {
       "type": "non-python",
       "extension": ".tsx",
       "size_bytes": 12736,
       "description": "",
-      "purpose": "Displays the detailed timeline, state changes, and events for a specific agent trace run."
+      "purpose": "Renders a detailed timeline and state view for a specific agent run trace."
     },
     "sdk/python/example.py": {
       "functions": {
@@ -213,7 +213,7 @@
         "sys",
         "typing"
       ],
-      "purpose": "Demonstrates how to manually instrument a multi-agent AutoGen workflow to capture traces using AgentTrace."
+      "purpose": "Demonstrates how to manually instrument an AutoGen swarm using the AgentTrace SDK to capture conversational and tool execution events."
     },
     "sdk/python/example_crewai.py": {
       "functions": {
@@ -267,7 +267,7 @@
       "extension": ".txt",
       "size_bytes": 90,
       "description": "",
-      "purpose": "Lists the required Python package dependencies for running the AgentTrace SDK and its supported framework integrations."
+      "purpose": "Specifies the Python package dependencies required to run the AgentTrace SDK and its integrations."
     },
     "sdk/python/agent_trace/models.py": {
       "functions": {},
@@ -538,7 +538,7 @@
           },
           "class_attributes": {},
           "line": 9,
-          "description": "Provides integration with AutoGen by instrumenting ConversableAgents to capture their internal processes."
+          "description": "A handler class that intercepts AutoGen agent messages to log tracing events."
         }
       },
       "constants": {},
@@ -549,7 +549,7 @@
         "logging",
         "typing"
       ],
-      "purpose": "Provides a callback handler to instrument AutoGen agents and intercept their messages for tracing."
+      "purpose": "Provides an integration handler to instrument AutoGen conversational agents for automated tracing of reasoning and tool calls."
     },
     "sdk/python/agent_trace/integrations/crewai.py": {
       "functions": {},
@@ -766,7 +766,7 @@
         "pytest",
         "unittest"
       ],
-      "purpose": "Contains unit tests to ensure the AutoGen integration correctly intercepts and formats various agent message types."
+      "purpose": "Contains unit tests to verify the correct logging of reasoning, tool calls, and results by the AutoGen integration handler."
     },
     "sdk/python/tests/test_crewai.py": {
       "functions": {
@@ -1089,14 +1089,14 @@
       "extension": ".ts",
       "size_bytes": 5141,
       "description": "",
-      "purpose": "Configures the SQLite database schema and provides functions to insert and store trace events persistently."
+      "purpose": "Manages the SQLite database connection, schema initialization, and event insertion operations for the tracing server."
     },
     "server/src/index.ts": {
       "type": "non-python",
       "extension": ".ts",
       "size_bytes": 4254,
       "description": "",
-      "purpose": "Initializes the Express server and defines REST API endpoints for ingesting and querying agent trace events."
+      "purpose": "Sets up the Express server application and defines the REST API endpoints for ingesting and retrieving agent trace events."
     },
     "server/src/schema.ts": {
       "type": "non-python",

@@ -7,7 +7,7 @@
     "TypeScript",
     "Python"
   ],
-  "current_phase": "Implement AutoGen integration for the Python SDK to complete Phase 6 framework support",
+  "current_phase": "Implement Phase 7: Advanced Search, Filtering, and Export/Import capabilities",
   "maturity_level": "early",
   "completed_milestones": [],
   "planned_next_steps": [
@@ -138,28 +138,30 @@
     },
     {
       "date": "2026-03-19",
-      "summary": "Implement CrewAI integration for the Python SDK to support Phase 6 of the roadmap",
+      "summary": "Implement Phase 7: Advanced Search, Filtering, and Export/Import capabilities",
       "files_changed": [
-        "sdk/python/agent_trace/integrations/crewai.py",
-        "sdk/python/agent_trace/integrations/__init__.py",
-        "sdk/python/requirements.txt",
-        "sdk/python/tests/test_crewai.py",
-        "sdk/python/example_crewai.py",
-        "README.md"
+        "frontend/src/api.ts",
+        "frontend/src/pages/Dashboard.tsx",
+        "frontend/src/pages/TraceDetails.tsx",
+        "frontend/src/api.ts",
+        "frontend/src/pages/Dashboard.tsx"
       ],
-      "requests_used": 37
+      "requests_used": 17
     },
     {
       "date": "2026-03-19",
-      "summary": "Implement AutoGen integration for the Python SDK to complete Phase 6 framework support",
+      "summary": "Implement Phase 7: Advanced Search, Filtering, and Export/Import capabilities",
       "files_changed": [
-        "sdk/python/agent_trace/integrations/autogen.py",
-        "sdk/python/agent_trace/integrations/__init__.py",
-        "sdk/python/requirements.txt",
-        "sdk/python/tests/test_autogen.py",
-        "sdk/python/example_autogen.py"
+        "server/src/db.ts",
+        "server/src/index.ts",
+        "frontend/src/api.ts",
+        "server/src/db.ts",
+        "server/src/index.ts",
+        "frontend/src/api.ts",
+        "frontend/src/pages/Dashboard.tsx",
+        "frontend/src/pages/TraceDetails.tsx"
       ],
-      "requests_used": 26
+      "requests_used": 21
     }
   ],
   "open_questions": [],
