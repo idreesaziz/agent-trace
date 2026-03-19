@@ -4,31 +4,57 @@
 
 With the explosion of agent frameworks, developers struggle to debug where a swarm went wrong or why a specific tool was called. AgentTrace is a lightweight local server that ingests standardized logs from any agent framework and visualizes the reasoning chain, tool calls, and state transitions in a clean UI. It allows developers to step through an agent's thought process retrospectively across different libraries.
 
-## Features (Planned)
-- 🔌 **Universal Integration**: Drop-in SDKs for Python and TypeScript.
+## Features
+
+- 🔌 **Universal Integration**: Drop-in Python SDK with async, non-blocking trace collection.
 - 🕸️ **Multi-Agent Support**: Track complex swarms and inter-agent communication.
 - 🛠️ **Tool Call Tracing**: Inspect inputs and outputs of every tool execution.
-- 🔄 **Time-Travel Debugging**: Step back and forth through the reasoning chain.
-- 📊 **Framework Agnostic**: Works with LangChain, AutoGen, CrewAI, or custom loops.
+- 🔄 **Time-Travel Debugging**: Step forward and backward through the reasoning chain with an interactive timeline scrubber.
+- 📊 **Framework Agnostic**: Built-in integrations for LangChain, AutoGen, and CrewAI — or use the SDK directly for custom loops.
+- 🔍 **Search & Filter**: Full-text search across agent logs with event type filtering.
+- 📦 **Export & Import**: Share trace files as JSON for collaborative debugging.
 
-## Setup Instructions
+## Project Structure
+
+```
+agent-trace/
+├── sdk/python/          # Python SDK & framework integrations
+│   ├── agent_trace/     # Core Tracer, models, and integration callbacks
+│   └── tests/           # SDK test suite
+├── server/              # TypeScript ingestion server (Express + SQLite)
+│   ├── src/             # Server source (API routes, DB, schema validation)
+│   └── tests/           # Server test suite
+└── frontend/            # React + TypeScript dashboard (Vite + Tailwind)
+    └── src/             # UI components, pages, hooks, and API client
+```
+
+## Getting Started
 
 ### 1. Start the Local Server
-The AgentTrace server receives and stores your agent logs locally.
+
 ```bash
 cd server
 npm install
 npm run dev
 ```
-*The server will listen for traces on `http://localhost:3000`.*
 
-### 2. Install the Python SDK
-In your Python project environment, install the AgentTrace SDK and its dependencies:
+The server will listen on `http://localhost:3000`.
+
+### 2. Start the Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The dashboard will be available at `http://localhost:5173`.
+
+### 3. Install the Python SDK
+
 ```bash
 cd sdk/python
 pip install -r requirements.txt
-# If using as a local package:
-pip install -e .
 ```
 
 ## Usage

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -10,12 +10,10 @@ import {
   AlertCircle, 
   Wrench, 
   MessageSquare,
-  Search,
-  Filter,
   Download
 } from 'lucide-react';
 import { fetchEvents } from '../api';
-import { AgentRun, AgentEvent, StateChangeData } from '../types';
+import { AgentEvent, StateChangeData } from '../types';
 import TimelineScrubber from '../components/TimelineScrubber';
 import StateViewer from '../components/StateViewer';
 
@@ -63,7 +61,7 @@ const EventCard: React.FC<{
   isActive: boolean; 
   eventIndex: number; 
   onClick: () => void;
-}> = ({ event, isFuture, isActive, eventIndex, onClick }) => {
+}> = ({ event, isFuture, isActive, onClick }) => {
   const { event_type, data, timestamp } = event;
   
   const renderContent = () => {
@@ -170,8 +168,6 @@ export default function TraceDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(-1);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const playIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -191,38 +187,6 @@ export default function TraceDetails() {
   }, [id]);
 
   const currentState = useAgentState(events, currentIndex);
-
-  const togglePlay = () => {
-    if (isPlaying) {
-      setIsPlaying(false);
-      if (playIntervalRef.current) {
-        clearInterval(playIntervalRef.current);
-      }
-    } else {
-      if (currentIndex >= events.length - 1) {
-        setCurrentIndex(0);
-      }
-      setIsPlaying(true);
-      playIntervalRef.current = window.setInterval(() => {
-        setCurrentIndex(prev => {
-          if (prev >= events.length - 1) {
-            setIsPlaying(false);
-            if (playIntervalRef.current) clearInterval(playIntervalRef.current);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (playIntervalRef.current) {
-        clearInterval(playIntervalRef.current);
-      }
-    };
-  }, []);
 
   const handleExport = () => {
     if (!events || events.length === 0) return;
@@ -303,11 +267,9 @@ export default function TraceDetails() {
             <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Event Timeline</h2>
             {events.length > 0 && (
               <TimelineScrubber 
-                totalSteps={events.length} 
-                currentStep={currentIndex} 
-                onChange={setCurrentIndex}
-                isPlaying={isPlaying}
-                onTogglePlay={togglePlay}
+                events={events}
+                currentIndex={currentIndex}
+                onIndexChange={setCurrentIndex}
               />
             )}
           </div>
@@ -337,7 +299,7 @@ export default function TraceDetails() {
           
           <div className="flex-1 overflow-y-auto p-6">
             {Object.keys(currentState).length > 0 ? (
-              <StateViewer state={currentState} />
+              <StateViewer events={events} currentIndex={currentIndex} />
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-gray-400">
                 <Layers className="w-12 h-12 mb-3 text-gray-200" />

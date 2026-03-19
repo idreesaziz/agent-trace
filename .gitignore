@@ -3,5 +3,10 @@ dist/
 build/
 __pycache__/
 *.pyc
+*.pyo
 .env
 .DS_Store
+*.db
+*.sqlite
+*.egg-info/
+.vite/
