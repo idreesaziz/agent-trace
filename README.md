@@ -1,31 +1,41 @@
+<div align="center">
+
 # AgentTrace
 
 **Universal local debugger and visualizer for multi-agent workflows.**
 
-With the explosion of agent frameworks, developers struggle to debug where a swarm went wrong or why a specific tool was called. AgentTrace is a lightweight local server that ingests standardized logs from any agent framework and visualizes the reasoning chain, tool calls, and state transitions in a clean UI. It allows developers to step through an agent's thought process retrospectively across different libraries.
+[Getting Started](#getting-started) · [Usage](#usage) · [Project Structure](#project-structure)
+
+---
+
+</div>
+
+With the explosion of agent frameworks, developers struggle to debug where a swarm went wrong or why a specific tool was called. AgentTrace is a lightweight local server that ingests standardized logs from any agent framework and visualizes the reasoning chain, tool calls, and state transitions in a clean UI. Step through an agent's thought process retrospectively — across any library.
 
 ## Features
 
-- 🔌 **Universal Integration**: Drop-in Python SDK with async, non-blocking trace collection.
-- 🕸️ **Multi-Agent Support**: Track complex swarms and inter-agent communication.
-- 🛠️ **Tool Call Tracing**: Inspect inputs and outputs of every tool execution.
-- 🔄 **Time-Travel Debugging**: Step forward and backward through the reasoning chain with an interactive timeline scrubber.
-- 📊 **Framework Agnostic**: Built-in integrations for LangChain, AutoGen, and CrewAI — or use the SDK directly for custom loops.
-- 🔍 **Search & Filter**: Full-text search across agent logs with event type filtering.
-- 📦 **Export & Import**: Share trace files as JSON for collaborative debugging.
+| | Feature | Description |
+|---|---|---|
+| **SDK** | Universal Integration | Drop-in Python SDK with async, non-blocking trace collection |
+| **Agents** | Multi-Agent Support | Track complex swarms and inter-agent communication |
+| **Tools** | Tool Call Tracing | Inspect inputs and outputs of every tool execution |
+| **Debug** | Time-Travel Debugging | Step forward and backward through the reasoning chain with an interactive timeline scrubber |
+| **Frameworks** | Framework Agnostic | Built-in integrations for LangChain, AutoGen, and CrewAI — or use the SDK directly |
+| **Search** | Search & Filter | Full-text search across agent logs with event type filtering |
+| **Export** | Export & Import | Share trace files as JSON for collaborative debugging |
 
 ## Project Structure
 
 ```
 agent-trace/
-├── sdk/python/          # Python SDK & framework integrations
-│   ├── agent_trace/     # Core Tracer, models, and integration callbacks
-│   └── tests/           # SDK test suite
-├── server/              # TypeScript ingestion server (Express + SQLite)
-│   ├── src/             # Server source (API routes, DB, schema validation)
-│   └── tests/           # Server test suite
-└── frontend/            # React + TypeScript dashboard (Vite + Tailwind)
-    └── src/             # UI components, pages, hooks, and API client
+├── sdk/python/            Python SDK & framework integrations
+│   ├── agent_trace/       Core Tracer, models, and integration callbacks
+│   └── tests/             SDK test suite
+├── server/                TypeScript ingestion server (Express + SQLite)
+│   ├── src/               API routes, DB, schema validation
+│   └── tests/             Server test suite
+└── frontend/              React + TypeScript dashboard (Vite + Tailwind)
+    └── src/               UI components, pages, hooks, and API client
 ```
 
 ## Getting Started
@@ -57,13 +67,16 @@ cd sdk/python
 pip install -r requirements.txt
 ```
 
+---
+
 ## Usage
 
-### Framework Integrations: LangChain (Drop-In)
+### LangChain — Drop-In Integration
 
-AgentTrace provides a native callback handler for LangChain. This automatically intercepts LLM prompts, reasoning, tool executions, and chain state transitions without requiring any manual instrumentation.
+AgentTrace provides a native callback handler for LangChain. It automatically intercepts LLM prompts, reasoning, tool executions, and chain state transitions without requiring any manual instrumentation.
 
-**Example: Tracing a LangChain Agent**
+<details>
+<summary><strong>Example: Tracing a LangChain Agent</strong></summary>
 
 ```python
 from langchain_openai import ChatOpenAI
@@ -97,8 +110,7 @@ prompt = ChatPromptTemplate.from_messages([
 agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools)
 
-# 4. Run the agent, passing the AgentTraceCallbackHandler in the config!
-print("Running agent...")
+# 4. Run the agent with the trace callback
 response = agent_executor.invoke(
     {"input": "What's the weather like in Tokyo?"},
     config={"callbacks": [trace_callback]}
@@ -107,14 +119,16 @@ response = agent_executor.invoke(
 print(f"Agent response: {response['output']}")
 ```
 
-### Framework Integrations: CrewAI (Drop-In)
+</details>
 
-AgentTrace provides a native step callback handler for CrewAI. This intercepts agent steps and automatically logs reasoning, tool execution, and tool results natively.
+### CrewAI — Drop-In Integration
 
-**Example: Tracing a CrewAI Multi-Agent Swarm**
+AgentTrace provides a native step callback handler for CrewAI. It intercepts agent steps and automatically logs reasoning, tool execution, and tool results.
+
+<details>
+<summary><strong>Example: Tracing a CrewAI Multi-Agent Swarm</strong></summary>
 
 ```python
-import os
 from crewai import Agent, Task, Crew, Process
 from langchain_openai import ChatOpenAI
 from langchain.tools import tool
@@ -131,7 +145,7 @@ def get_weather(location: str) -> str:
     """Get the current weather for a location."""
     return f"The weather in {location} is 72°F and sunny."
 
-# 3. Create the Agents, attaching the CrewAIStepCallbackHandler
+# 3. Create Agents with the CrewAI step callback
 researcher = Agent(
     role='Weather Researcher',
     goal='Find the current weather for given locations',
@@ -161,18 +175,26 @@ task1 = Task(
 )
 
 task2 = Task(
-    description='Write a 2-sentence weather report based on the researcher\'s findings.',
+    description='Write a 2-sentence weather report.',
     expected_output='A 2-sentence weather report.',
     agent=writer
 )
 
-# 5. Form the Crew and kick off the process
+# 5. Form the Crew and kick off
 crew = Crew(
     agents=[researcher, writer],
     tasks=[task1, task2],
     process=Process.sequential
 )
 
-print("Running CrewAI swarm...")
 result = crew.kickoff()
 print("Final Result:", result)
+```
+
+</details>
+
+---
+
+## License
+
+See [LICENSE](LICENSE) for details.
