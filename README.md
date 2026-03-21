@@ -31,8 +31,8 @@ agent-trace/
 ├── sdk/python/            Python SDK & framework integrations
 │   ├── agent_trace/       Core Tracer, models, and integration callbacks
 │   └── tests/             SDK test suite
-├── server/                TypeScript ingestion server (Express + SQLite)
-│   ├── src/               API routes, DB, schema validation
+├── server/                TypeScript ingestion server & CLI (Express + SQLite)
+│   ├── src/               API routes, DB, schema validation, CLI entry
 │   └── tests/             Server test suite
 └── frontend/              React + TypeScript dashboard (Vite + Tailwind)
     └── src/               UI components, pages, hooks, and API client
@@ -40,27 +40,34 @@ agent-trace/
 
 ## Getting Started
 
-### 1. Start the Local Server
+AgentTrace provides a unified CLI that runs the ingestion server and serves the frontend dashboard from a single command.
+
+### 1. Install the CLI and Server
+
+Build and install the `agent-trace` CLI globally. Building the server automatically builds the React frontend dashboard as well.
 
 ```bash
 cd server
 npm install
-npm run dev
+npm run build
+npm install -g .
 ```
 
-The server will listen on `http://localhost:3000`.
+### 2. Start AgentTrace
 
-### 2. Start the Frontend
+Once installed, simply start the local server via the CLI:
 
 ```bash
-cd frontend
-npm install
-npm run dev
+agent-trace start
 ```
 
-The dashboard will be available at `http://localhost:5173`.
+The unified dashboard and ingestion API will be available at `http://localhost:3000`.
+
+*(Optional: To run on a different port, use `agent-trace start -p 8080`)*
 
 ### 3. Install the Python SDK
+
+In your Python project environment, install the SDK:
 
 ```bash
 cd sdk/python
@@ -87,114 +94,152 @@ from langchain_core.tools import tool
 from agent_trace import Tracer
 from agent_trace.integrations.langchain import AgentTraceCallbackHandler
 
-# 1. Initialize the Tracer and the LangChain Callback Handler
-tracer = Tracer(project_name="langchain_demo")
-trace_callback = AgentTraceCallbackHandler(tracer=tracer, agent_name="WeatherBot")
+# 1. Initialize the Tracer and the callback handler
+tracer = Tracer(project_name="weather-agent")
+agent_trace_callback = AgentTraceCallbackHandler(tracer=tracer, agent_name="weather_assistant")
 
-# 2. Define a simple tool
+# 2. Define tools and the LangChain agent
 @tool
 def get_weather(location: str) -> str:
     """Get the current weather for a location."""
     return f"The weather in {location} is 72°F and sunny."
 
-tools = [get_weather]
-
-# 3. Create the LangChain agent
-llm = ChatOpenAI(model="gpt-4", temperature=0)
+llm = ChatOpenAI(model="gpt-4-turbo")
 prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a helpful assistant."),
+    ("system", "You are a helpful weather assistant."),
+    ("placeholder", "{chat_history}"),
     ("human", "{input}"),
     ("placeholder", "{agent_scratchpad}"),
 ])
 
-agent = create_tool_calling_agent(llm, tools, prompt)
-agent_executor = AgentExecutor(agent=agent, tools=tools)
+agent = create_tool_calling_agent(llm, [get_weather], prompt)
+agent_executor = AgentExecutor(agent=agent, tools=[get_weather])
 
-# 4. Run the agent with the trace callback
-response = agent_executor.invoke(
-    {"input": "What's the weather like in Tokyo?"},
-    config={"callbacks": [trace_callback]}
+# 3. Execute with the callback
+agent_executor.invoke(
+    {"input": "What is the weather in San Francisco?"},
+    config={"callbacks": [agent_trace_callback]}
 )
 
-print(f"Agent response: {response['output']}")
+# 4. Flush the tracer before exiting
+tracer.flush()
 ```
-
 </details>
 
-### CrewAI — Drop-In Integration
+### AutoGen — Automatic Swarm Tracing
 
-AgentTrace provides a native step callback handler for CrewAI. It intercepts agent steps and automatically logs reasoning, tool execution, and tool results.
+Instrument conversable agents to trace message flows, tool executions, and internal logic.
 
 <details>
-<summary><strong>Example: Tracing a CrewAI Multi-Agent Swarm</strong></summary>
+<summary><strong>Example: Tracing an AutoGen Swarm</strong></summary>
 
 ```python
-from crewai import Agent, Task, Crew, Process
-from langchain_openai import ChatOpenAI
-from langchain.tools import tool
+import autogen
+from agent_trace import Tracer
+from agent_trace.integrations.autogen import AutoGenCallbackHandler
 
+tracer = Tracer(project_name="autogen-swarm")
+handler = AutoGenCallbackHandler(tracer)
+
+# Create AutoGen agents
+assistant = autogen.AssistantAgent(
+    name="assistant",
+    llm_config={"config_list": [{"model": "gpt-4", "api_key": "YOUR_API_KEY"}]}
+)
+user_proxy = autogen.UserProxyAgent(
+    name="user_proxy",
+    human_input_mode="NEVER",
+    max_consecutive_auto_reply=2
+)
+
+# Instrument agents
+handler.instrument_agent(assistant)
+handler.instrument_agent(user_proxy)
+
+# Initiate chat
+user_proxy.initiate_chat(assistant, message="Write a python script to calculate the Fibonacci sequence.")
+
+tracer.flush()
+```
+</details>
+
+### CrewAI — Agent Step Tracking
+
+Capture agent step telemetry, observations, and tool uses in multi-agent crews.
+
+<details>
+<summary><strong>Example: Tracing a CrewAI Workflow</strong></summary>
+
+```python
+from crewai import Agent, Task, Crew
 from agent_trace import Tracer
 from agent_trace.integrations.crewai import CrewAIStepCallbackHandler
 
-# 1. Initialize the Tracer
-tracer = Tracer(project_name="crewai_demo")
+tracer = Tracer(project_name="crewai-research")
 
-# 2. Define a simple tool
-@tool
-def get_weather(location: str) -> str:
-    """Get the current weather for a location."""
-    return f"The weather in {location} is 72°F and sunny."
+# Create the callback handler
+researcher_callback = CrewAIStepCallbackHandler(tracer, agent_name="Researcher")
 
-# 3. Create Agents with the CrewAI step callback
 researcher = Agent(
-    role='Weather Researcher',
-    goal='Find the current weather for given locations',
-    backstory='An expert in gathering weather data from around the world.',
+    role='Senior Researcher',
+    goal='Uncover groundbreaking technologies',
+    backstory='Driven by curiosity, you are at the forefront of innovation.',
     verbose=True,
     allow_delegation=False,
-    tools=[get_weather],
-    llm=ChatOpenAI(model="gpt-4", temperature=0),
-    step_callback=CrewAIStepCallbackHandler(tracer, agent_name="Researcher")
+    step_callback=researcher_callback  # Attach callback
 )
 
-writer = Agent(
-    role='Weather Reporter',
-    goal='Write a short report about the weather',
-    backstory='A skilled writer who crafts engaging weather reports.',
-    verbose=True,
-    allow_delegation=False,
-    llm=ChatOpenAI(model="gpt-4", temperature=0),
-    step_callback=CrewAIStepCallbackHandler(tracer, agent_name="Writer")
+task = Task(
+    description='Research the latest advancements in AI agents.',
+    agent=researcher,
+    expected_output='A summary of the latest AI agent frameworks.'
 )
 
-# 4. Create Tasks
-task1 = Task(
-    description='Find out what the weather is like in Tokyo.',
-    expected_output='A brief statement of the weather in Tokyo.',
-    agent=researcher
-)
-
-task2 = Task(
-    description='Write a 2-sentence weather report.',
-    expected_output='A 2-sentence weather report.',
-    agent=writer
-)
-
-# 5. Form the Crew and kick off
 crew = Crew(
-    agents=[researcher, writer],
-    tasks=[task1, task2],
-    process=Process.sequential
+    agents=[researcher],
+    tasks=[task],
+    verbose=True
 )
 
-result = crew.kickoff()
-print("Final Result:", result)
+crew.kickoff()
+tracer.flush()
 ```
-
 </details>
 
----
+### Raw Python SDK
 
-## License
+If you are building a custom framework or raw LLM loop, use the Python SDK directly to emit standard events.
 
-See [LICENSE](LICENSE) for details.
+<details>
+<summary><strong>Example: Manual Instrumentation</strong></summary>
+
+```python
+from agent_trace import Tracer
+from agent_trace.models import ReasoningData, ToolCallData, ToolResultData, StateChangeData
+
+tracer = Tracer(project_name="custom-agent")
+
+# Log reasoning
+tracer.log_event(
+    agent="researcher",
+    event_type="reasoning",
+    data=ReasoningData(content="I need to search for the current stock price of AAPL.")
+)
+
+# Log tool call
+tracer.log_event(
+    agent="researcher",
+    event_type="tool_call",
+    data=ToolCallData(tool_name="web_search", tool_args={"query": "AAPL stock price"})
+)
+
+# Log tool result
+tracer.log_event(
+    agent="researcher",
+    event_type="tool_result",
+    data=ToolResultData(tool_name="web_search", result="AAPL is currently trading at $150.23", is_error=False)
+)
+
+tracer.flush()
+```
+</details>
