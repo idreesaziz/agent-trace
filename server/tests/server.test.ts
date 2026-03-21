@@ -1,12 +1,12 @@
 import request from 'supertest';
 
 // Mock better-sqlite3 to use an in-memory database to prevent touching the file system
-let dbInstance: any;
+var mockDbInstance: any;
 jest.mock('better-sqlite3', () => {
   const ActualDatabase = jest.requireActual('better-sqlite3');
   return jest.fn(function (path: string, options: any) {
-    dbInstance = new ActualDatabase(':memory:', options);
-    return dbInstance;
+    mockDbInstance = new ActualDatabase(':memory:', options);
+    return mockDbInstance;
   });
 });
 
@@ -16,15 +16,15 @@ import app from '../src/index';
 describe('AgentTrace Server API', () => {
 
   afterAll(() => {
-    if (dbInstance) {
-      dbInstance.close();
+    if (mockDbInstance) {
+      mockDbInstance.close();
     }
   });
 
   afterEach(() => {
-    if (dbInstance) {
+    if (mockDbInstance) {
       // Clean the events table after each test run for test isolation
-      dbInstance.prepare('DELETE FROM events').run();
+      mockDbInstance.prepare('DELETE FROM events').run();
     }
   });
 
@@ -47,7 +47,7 @@ describe('AgentTrace Server API', () => {
       expect(response.body.success).toBe(false);
       
       // Ensure nothing was saved to the database
-      const row = dbInstance.prepare('SELECT COUNT(*) as count FROM events').get() as { count: number };
+      const row = mockDbInstance.prepare('SELECT COUNT(*) as count FROM events').get() as { count: number };
       expect(row.count).toBe(0);
     });
 
@@ -86,7 +86,7 @@ describe('AgentTrace Server API', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
 
-      const row = dbInstance.prepare('SELECT * FROM events WHERE event_id = ?').get('evt-3');
+      const row = mockDbInstance.prepare('SELECT * FROM events WHERE event_id = ?').get('evt-3');
       expect(row).toBeDefined();
       expect(row.agent).toBe('test-agent');
       expect(JSON.parse(row.data)).toEqual(payload.data);
@@ -109,14 +109,62 @@ describe('AgentTrace Server API', () => {
       expect(duplicateResponse.status).toBe(200);
 
       // Only one row should exist
-      const row = dbInstance.prepare('SELECT COUNT(*) as count FROM events WHERE event_id = ?').get('evt-4') as { count: number };
+      const row = mockDbInstance.prepare('SELECT COUNT(*) as count FROM events WHERE event_id = ?').get('evt-4') as { count: number };
       expect(row.count).toBe(1);
+    });
+  });
+
+  describe('POST /api/import', () => {
+    it('should successfully import valid events', async () => {
+      const payload = [
+        {
+          project_name: 'import-project',
+          agent: 'import-agent',
+          event_type: 'reasoning',
+          data: { content: 'imported' },
+          timestamp: Date.now(),
+          event_id: 'evt-import-1',
+          run_id: 'run-import'
+        }
+      ];
+
+      const response = await request(app)
+        .post('/api/import')
+        .send(payload);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.count).toBe(1);
+
+      const row = mockDbInstance.prepare('SELECT * FROM events WHERE event_id = ?').get('evt-import-1');
+      expect(row).toBeDefined();
+      expect(row.project_name).toBe('import-project');
+    });
+
+    it('should return 400 when import data is invalid', async () => {
+      const invalidPayload = [
+        {
+          project_name: 'import-project',
+          // missing agent
+          event_type: 'reasoning',
+          data: { content: 'imported' },
+          timestamp: Date.now(),
+          event_id: 'evt-import-2'
+        }
+      ];
+
+      const response = await request(app)
+        .post('/api/import')
+        .send(invalidPayload);
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
     });
   });
 
   describe('GET Endpoints', () => {
     beforeEach(async () => {
-      const insertStmt = dbInstance.prepare(`
+      const insertStmt = mockDbInstance.prepare(`
         INSERT INTO events (
           event_id, project_name, run_id, parent_id, agent, event_type, data, timestamp
         ) VALUES (
@@ -213,6 +261,67 @@ describe('AgentTrace Server API', () => {
         expect(Array.isArray(response.body)).toBe(true);
         expect(response.body.length).toBe(2);
         expect(response.body.every((e: any) => e.event_type === 'reasoning')).toBe(true);
+      });
+    });
+
+    describe('GET /api/search', () => {
+      it('should search events by fts text', async () => {
+        const response = await request(app).get('/api/search?search=step');
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        expect(response.body.length).toBe(2);
+        expect(response.body.some((e: any) => e.event_id === 'evt-get-1')).toBe(true);
+        expect(response.body.some((e: any) => e.event_id === 'evt-get-3')).toBe(true);
+      });
+
+      it('should search events by tool name in data', async () => {
+        const response = await request(app).get('/api/search?search=search');
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        expect(response.body.length).toBe(1);
+        expect(response.body[0].event_id).toBe('evt-get-2');
+      });
+
+      it('should filter search by run_id', async () => {
+        const response = await request(app).get('/api/search?search=step&run_id=run-1');
+        expect(response.status).toBe(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        expect(response.body.length).toBe(1);
+        expect(response.body[0].event_id).toBe('evt-get-1');
+      });
+    });
+
+    describe('GET /api/export', () => {
+      it('should export all events in correct format', async () => {
+        const response = await request(app).get('/api/export');
+        expect(response.status).toBe(200);
+        expect(response.headers['content-type']).toContain('application/json');
+        expect(response.headers['content-disposition']).toContain('attachment; filename=agent-trace-export.json');
+        
+        const data = JSON.parse(response.text);
+        expect(Array.isArray(data)).toBe(true);
+        expect(data.length).toBe(3);
+        expect(data[0]).toHaveProperty('event_id');
+        expect(data[0]).toHaveProperty('project_name');
+        expect(data[0].data).toBeDefined();
+        expect(typeof data[0].data).toBe('object');
+      });
+
+      it('should export events for a specific run_id via query param', async () => {
+        const response = await request(app).get('/api/export?run_id=run-1');
+        expect(response.status).toBe(200);
+        const data = JSON.parse(response.text);
+        expect(data.length).toBe(2);
+        expect(data.every((e: any) => e.run_id === 'run-1')).toBe(true);
+      });
+
+      it('should export events for a specific run_id via route param', async () => {
+        const response = await request(app).get('/api/export/run-2');
+        expect(response.status).toBe(200);
+        expect(response.headers['content-disposition']).toContain('attachment; filename=agent-trace-run-2.json');
+        const data = JSON.parse(response.text);
+        expect(data.length).toBe(1);
+        expect(data[0].run_id).toBe('run-2');
       });
     });
   });
