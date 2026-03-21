@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { z } from 'zod';
-import db, { initDb, insertEvent } from './db';
+import db, { initDb, insertEvent, getEvents, exportRunEvents, insertEvents } from './db';
 import { AgentEventSchema } from './schema';
 
 const app = express();
@@ -38,6 +38,26 @@ app.post('/api/trace/bulk', (req, res) => {
     res.status(200).json({ success: true, count: events.length });
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message || 'Invalid payload' });
+  }
+});
+
+// Search events using FTS
+app.get('/api/search', (req, res) => {
+  try {
+    const { search, event_type, run_id, limit = 1000, offset = 0 } = req.query;
+
+    const events = getEvents({
+      search: search ? String(search) : undefined,
+      event_type: event_type ? String(event_type) : undefined,
+      run_id: run_id ? String(run_id) : undefined,
+      limit: Number(limit),
+      offset: Number(offset)
+    });
+
+    res.status(200).json(events);
+  } catch (error: any) {
+    console.error('Error searching events:', error);
+    res.status(500).json({ success: false, error: error.message || 'Internal Server Error' });
   }
 });
 
@@ -170,18 +190,28 @@ app.get('/api/export', (req, res) => {
   }
 });
 
+// Export a specific run
+app.get('/api/export/:run_id', (req, res) => {
+  try {
+    const { run_id } = req.params;
+    const events = exportRunEvents(run_id);
+
+    res.setHeader('Content-disposition', `attachment; filename=agent-trace-${run_id}.json`);
+    res.setHeader('Content-type', 'application/json');
+    res.status(200).send(JSON.stringify(events, null, 2));
+  } catch (error: any) {
+    console.error('Error exporting events:', error);
+    res.status(500).json({ success: false, error: error.message || 'Internal Server Error' });
+  }
+});
+
 // Bulk import events
 app.post('/api/import', (req, res) => {
   try {
     const events = z.array(AgentEventSchema).parse(req.body);
     
-    const insertMany = db.transaction((eventsList: any[]) => {
-      for (const event of eventsList) {
-        insertEvent(event);
-      }
-    });
+    insertEvents(events);
     
-    insertMany(events);
     res.status(200).json({ success: true, count: events.length });
   } catch (error: any) {
     console.error('Error importing events:', error);
