@@ -34,6 +34,31 @@ export function initDb() {
     CREATE INDEX IF NOT EXISTS idx_events_agent ON events(agent);
     CREATE INDEX IF NOT EXISTS idx_events_event_type ON events(event_type);
     CREATE INDEX IF NOT EXISTS idx_events_timestamp ON events(timestamp);
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS events_fts USING fts5(
+      project_name,
+      agent,
+      data,
+      content='events',
+      content_rowid='id'
+    );
+
+    CREATE TRIGGER IF NOT EXISTS events_ai AFTER INSERT ON events BEGIN
+      INSERT INTO events_fts(rowid, project_name, agent, data)
+      VALUES (new.id, new.project_name, new.agent, new.data);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS events_ad AFTER DELETE ON events BEGIN
+      INSERT INTO events_fts(events_fts, rowid, project_name, agent, data)
+      VALUES ('delete', old.id, old.project_name, old.agent, old.data);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS events_au AFTER UPDATE ON events BEGIN
+      INSERT INTO events_fts(events_fts, rowid, project_name, agent, data)
+      VALUES ('delete', old.id, old.project_name, old.agent, old.data);
+      INSERT INTO events_fts(rowid, project_name, agent, data)
+      VALUES (new.id, new.project_name, new.agent, new.data);
+    END;
   `);
 }
 
@@ -100,26 +125,32 @@ export function insertEvents(events: AgentEvent[]) {
 }
 
 export function getEvents(options: { search?: string; event_type?: string; limit?: number; offset?: number; run_id?: string } = {}) {
-  let queryStr = `SELECT * FROM events WHERE 1=1`;
+  let queryStr = `SELECT events.* FROM events`;
   const params: any[] = [];
 
+  if (options.search) {
+    queryStr += ` JOIN events_fts ON events.id = events_fts.rowid`;
+  }
+
+  queryStr += ` WHERE 1=1`;
+
   if (options.run_id) {
-    queryStr += ` AND run_id = ?`;
+    queryStr += ` AND events.run_id = ?`;
     params.push(String(options.run_id));
   }
 
   if (options.event_type) {
-    queryStr += ` AND event_type = ?`;
+    queryStr += ` AND events.event_type = ?`;
     params.push(String(options.event_type));
   }
 
   if (options.search) {
-    const searchTerm = `%${String(options.search)}%`;
-    queryStr += ` AND (data LIKE ? OR agent LIKE ? OR project_name LIKE ?)`;
-    params.push(searchTerm, searchTerm, searchTerm);
+    const searchTerm = String(options.search).replace(/"/g, '""');
+    queryStr += ` AND events_fts MATCH ?`;
+    params.push(`"${searchTerm}"*`);
   }
 
-  queryStr += ` ORDER BY timestamp ASC`;
+  queryStr += ` ORDER BY events.timestamp ASC`;
 
   if (options.limit !== undefined) {
     queryStr += ` LIMIT ?`;

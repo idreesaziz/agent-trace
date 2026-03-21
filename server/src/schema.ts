@@ -47,6 +47,18 @@ export const AgentEventSchema = z.object({
   parent_id: z.string().nullable().optional()
 });
 
+export const SearchQuerySchema = z.object({
+  search: z.string().optional(),
+  event_type: z.string().optional(),
+  run_id: z.string().optional(),
+  limit: z.coerce.number().optional(),
+  offset: z.coerce.number().optional()
+});
+
+export const BulkImportSchema = z.object({
+  events: z.array(AgentEventSchema)
+});
+
 // Infer TypeScript types from the Zod schemas
 export type EventType = z.infer<typeof EventTypeSchema>;
 export type ReasoningData = z.infer<typeof ReasoningDataSchema>;
@@ -54,3 +66,5 @@ export type ToolCallData = z.infer<typeof ToolCallDataSchema>;
 export type ToolResultData = z.infer<typeof ToolResultDataSchema>;
 export type StateChangeData = z.infer<typeof StateChangeDataSchema>;
 export type AgentEvent = z.infer<typeof AgentEventSchema>;
+export type SearchQuery = z.infer<typeof SearchQuerySchema>;
+export type BulkImport = z.infer<typeof BulkImportSchema>;
