@@ -1,0 +1,1131 @@
+{
+  "project": {
+    "name": "agent-trace",
+    "purpose": "With the explosion of agent frameworks, developers struggle to debug where a swarm went wrong or why a specific tool was called. AgentTrace is a lightweight local server that ingests standardized logs from any agent framework and visualizes the reasoning chain, tool calls, and state transitions in a clean UI. It allows developers to step through an agent's thought process retrospectively across different libraries.",
+    "tech_stack": [
+      "TypeScript",
+      "Python"
+    ],
+    "roadmap": [
+      {
+        "phase": 1,
+        "title": "Standardized Schema & Python SDK",
+        "description": "Define the universal JSON schema for agent events (reasoning, tool calls, state changes). Build a lightweight, non-blocking Python SDK to structure and emit these events.",
+        "status": "completed"
+      },
+      {
+        "phase": 2,
+        "title": "Local Ingestion Server",
+        "description": "Develop a lightweight TypeScript local server utilizing a local SQLite database to ingest, validate, and persist trace payloads from the Python SDK.",
+        "status": "completed"
+      },
+      {
+        "phase": 3,
+        "title": "Frontend Skeleton & Trace List",
+        "description": "Set up the React/TypeScript frontend. Build the main dashboard to list ingested agent runs, display high-level metadata, and provide routing to individual trace views.",
+        "status": "completed"
+      },
+      {
+        "phase": 4,
+        "title": "Reasoning Chain & Tool Call Visualization",
+        "description": "Implement a tree or waterfall visualization for individual traces. Render LLM prompts, reasoning steps, and tool execution inputs/outputs in a clear, collapsible interface.",
+        "status": "completed"
+      },
+      {
+        "phase": 5,
+        "title": "State Transitions & Step-Through Debugger",
+        "description": "Add an interactive timeline scrubber to the UI. Allow developers to step forward and backward through a run to view state diffs and context windows at any exact moment.",
+        "status": "completed"
+      },
+      {
+        "phase": 6,
+        "title": "Drop-in Framework Integrations",
+        "description": "Build middleware and callback handlers in Python to automatically capture and format traces from popular frameworks (LangChain, CrewAI, AutoGen) with minimal manual instrumentation.",
+        "status": "completed"
+      },
+      {
+        "phase": 7,
+        "title": "Advanced Search, Export & UX Polish",
+        "description": "Implement full-text search across agent logs, filtering by tool/outcome, and UX polish. Add import/export functionality so developers can share trace files for collaborative debugging.",
+        "status": "completed"
+      }
+    ],
+    "current_phase": 7
+  },
+  "files": {
+    ".gitignore": {
+      "type": "non-python",
+      "extension": "",
+      "size_bytes": 112,
+      "description": "",
+      "purpose": "Specifies intentionally untracked files and directories that Git should ignore."
+    },
+    "README.md": {
+      "type": "non-python",
+      "extension": ".md",
+      "size_bytes": 6351,
+      "description": "",
+      "purpose": "Provides the primary documentation, feature overview, and getting-started guide for the AgentTrace project."
+    },
+    "frontend/index.html": {
+      "type": "non-python",
+      "extension": ".html",
+      "size_bytes": 409,
+      "description": "",
+      "purpose": "Serves as the main HTML entry point for the Vite + React frontend application."
+    },
+    "frontend/package-lock.json": {
+      "type": "non-python",
+      "extension": ".json",
+      "size_bytes": 149365,
+      "description": "",
+      "purpose": "Locks frontend dependencies to specific versions to ensure reproducible builds for the React application."
+    },
+    "frontend/package.json": {
+      "type": "non-python",
+      "extension": ".json",
+      "size_bytes": 967,
+      "description": "",
+      "purpose": "Defines the frontend npm package dependencies, scripts, and configuration for a React/Vite/TypeScript project."
+    },
+    "frontend/tsconfig.json": {
+      "type": "non-python",
+      "extension": ".json",
+      "size_bytes": 756,
+      "description": "",
+      "purpose": "Configures TypeScript compiler options for the Vite/React frontend environment."
+    },
+    "frontend/vite.config.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 327,
+      "description": "",
+      "purpose": "Configures the Vite build tool, including the React plugin and local API proxying for development."
+    },
+    "frontend/src/api.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 3497,
+      "description": "",
+      "purpose": "Provides frontend API client functions to fetch agent trace events and runs from the backend."
+    },
+    "frontend/src/App.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 550,
+      "description": "",
+      "purpose": "Defines the main application routing and layout, mapping URLs to the Dashboard and TraceDetails pages."
+    },
+    "frontend/src/main.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 9202,
+      "description": "",
+      "purpose": "Bootstraps the React application and defines an alternative API client and types for managing trace events."
+    },
+    "frontend/src/types.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 1016,
+      "description": "",
+      "purpose": "Centralizes TypeScript interfaces and types representing agent trace payloads, events, and runs."
+    },
+    "frontend/src/components/StateViewer.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 5026,
+      "description": "",
+      "purpose": "Provides a component to visually render the nested internal state of an agent at a specific point in time."
+    },
+    "frontend/src/components/TimelineScrubber.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 6059,
+      "description": "",
+      "purpose": "Defines a React component for scrubbing through and controlling playback of an agent's event timeline."
+    },
+    "frontend/src/hooks/useAgentState.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 1161,
+      "description": "",
+      "purpose": "Provides a React hook to calculate the cumulative internal state of an agent by sequentially applying state change events up to a specific index."
+    },
+    "frontend/src/pages/Dashboard.css": {
+      "type": "non-python",
+      "extension": ".css",
+      "size_bytes": 118,
+      "description": "",
+      "purpose": "A blank stylesheet kept for structural legacy as styling has migrated to Tailwind CSS."
+    },
+    "frontend/src/pages/Dashboard.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 9492,
+      "description": "",
+      "purpose": "Renders the main dashboard UI to view, search, filter, export, and import agent runs."
+    },
+    "frontend/src/pages/TraceDetails.tsx": {
+      "type": "non-python",
+      "extension": ".tsx",
+      "size_bytes": 11680,
+      "description": "",
+      "purpose": "Renders the detail view for a specific agent trace, displaying an interactive timeline and event cards for debugging."
+    },
+    "sdk/python/example.py": {
+      "functions": {
+        "main": {
+          "signature": "main()",
+          "decorators": [],
+          "line": 4,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "time"
+      ],
+      "purpose": "Demonstrates how to use the AgentTrace SDK to log agent execution steps like reasoning, tool calls, and state changes."
+    },
+    "sdk/python/example_autogen.py": {
+      "functions": {
+        "instrument_agent": {
+          "signature": "instrument_agent(agent: ConversableAgent, tracer: Tracer) -> None",
+          "decorators": [],
+          "line": 61,
+          "description": ""
+        },
+        "calculator": {
+          "signature": "calculator(a: Annotated[int, 'The first number'], b: Annotated[int, 'The second number'], operator: Annotated[str, 'The mathematical operator (+, -, *, /)']) -> str",
+          "decorators": [],
+          "line": 173,
+          "description": ""
+        },
+        "main": {
+          "signature": "main()",
+          "decorators": [],
+          "line": 193,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "os",
+        "sys",
+        "typing"
+      ],
+      "purpose": "Demonstrates how to manually instrument an AutoGen swarm using the AgentTrace SDK to capture conversational and tool execution events."
+    },
+    "sdk/python/example_crewai.py": {
+      "functions": {
+        "main": {
+          "signature": "main()",
+          "decorators": [],
+          "line": 21,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "os",
+        "sys"
+      ],
+      "purpose": "Demonstrates how to integrate the AgentTrace SDK into a CrewAI script to trace a multi-agent workflow."
+    },
+    "sdk/python/example_langchain.py": {
+      "functions": {
+        "get_weather": {
+          "signature": "get_weather(location: str) -> str",
+          "decorators": [
+            "tool"
+          ],
+          "line": 30,
+          "description": "Simulates an external API call to retrieve current weather information for a specified location."
+        },
+        "main": {
+          "signature": "main()",
+          "decorators": [],
+          "line": 39,
+          "description": "Initializes the AgentTrace tracer, configures a LangChain agent with the weather tool, and executes a query using the trace callback handler."
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "os",
+        "sys",
+        "time"
+      ],
+      "purpose": "Demonstrates how to integrate the AgentTrace SDK with a standard LangChain agent to automatically trace prompts, tool executions, and state changes."
+    },
+    "sdk/python/requirements.txt": {
+      "type": "non-python",
+      "extension": ".txt",
+      "size_bytes": 90,
+      "description": "",
+      "purpose": "Specifies the Python package dependencies required to run the AgentTrace SDK and its integrations."
+    },
+    "sdk/python/agent_trace/models.py": {
+      "functions": {},
+      "classes": {
+        "EventType": {
+          "bases": [
+            "str",
+            "Enum"
+          ],
+          "decorators": [],
+          "methods": {},
+          "class_attributes": {},
+          "line": 7,
+          "description": "Enumerates the standard types of events that can occur during an agent's execution."
+        },
+        "ReasoningData": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {
+            "to_dict": {
+              "signature": "to_dict(self) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 22,
+              "description": ""
+            }
+          },
+          "class_attributes": {
+            "content": "str",
+            "prompt": "Optional[str]",
+            "model": "Optional[str]"
+          },
+          "line": 16,
+          "description": "Represents the schema for logging an agent's reasoning or internal thought processes."
+        },
+        "ToolCallData": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {
+            "to_dict": {
+              "signature": "to_dict(self) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 32,
+              "description": ""
+            }
+          },
+          "class_attributes": {
+            "tool_name": "str",
+            "arguments": "Dict[str, Any]",
+            "tool_call_id": "Optional[str]"
+          },
+          "line": 26,
+          "description": "Represents the schema for an agent's intent to execute a specific tool."
+        },
+        "ToolResultData": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {
+            "to_dict": {
+              "signature": "to_dict(self) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 43,
+              "description": ""
+            }
+          },
+          "class_attributes": {
+            "tool_name": "str",
+            "result": "Any",
+            "tool_call_id": "Optional[str]",
+            "is_error": "bool"
+          },
+          "line": 36,
+          "description": "Represents the schema for the output or outcome of an executed tool."
+        },
+        "StateChangeData": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {
+            "to_dict": {
+              "signature": "to_dict(self) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 54,
+              "description": ""
+            }
+          },
+          "class_attributes": {
+            "keys_changed": "List[str]",
+            "old_state": "Dict[str, Any]",
+            "new_state": "Dict[str, Any]",
+            "reason": "Optional[str]"
+          },
+          "line": 47,
+          "description": "Represents the schema for tracking transitions in the internal state of an agent."
+        },
+        "AgentEvent": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {
+            "to_dict": {
+              "signature": "to_dict(self) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 69,
+              "description": ""
+            }
+          },
+          "class_attributes": {
+            "project_name": "str",
+            "agent": "str",
+            "event_type": "Union[EventType, str]",
+            "data": "Dict[str, Any]",
+            "timestamp": "float",
+            "event_id": "str",
+            "run_id": "Optional[str]",
+            "parent_id": "Optional[str]"
+          },
+          "line": 58,
+          "description": "Serves as the standardized envelope containing the core details of any event to be ingested by the tracing server."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "dataclasses",
+        "enum",
+        "time",
+        "typing",
+        "uuid"
+      ],
+      "purpose": "Defines the data structures and enumerations used to represent and serialize different types of agent events for tracing."
+    },
+    "sdk/python/agent_trace/__init__.py": {
+      "functions": {},
+      "classes": {
+        "Reasoning": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {},
+          "class_attributes": {
+            "content": "str"
+          },
+          "line": 13,
+          "description": "Defines a simple data structure for logging an agent's textual reasoning or thought process."
+        },
+        "ToolCall": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {},
+          "class_attributes": {
+            "tool_name": "str",
+            "arguments": "Dict[str, Any]"
+          },
+          "line": 17,
+          "description": "Defines a simple data structure for logging the name and arguments of a tool an agent intends to call."
+        },
+        "ToolResult": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {},
+          "class_attributes": {
+            "tool_name": "str",
+            "result": "Any",
+            "is_error": "bool"
+          },
+          "line": 22,
+          "description": "Defines a simple data structure for logging the outcome of an executed tool."
+        },
+        "StateChange": {
+          "bases": [],
+          "decorators": [
+            "dataclass"
+          ],
+          "methods": {},
+          "class_attributes": {
+            "before": "Dict[str, Any]",
+            "after": "Dict[str, Any]"
+          },
+          "line": 28,
+          "description": "Defines a simple data structure for logging the before and after states of an agent."
+        },
+        "Tracer": {
+          "bases": [],
+          "decorators": [],
+          "methods": {
+            "__init__": {
+              "signature": "__init__(self, project_name: str, endpoint: str='http://localhost:3000/api/trace')",
+              "decorators": [],
+              "line": 35,
+              "description": ""
+            },
+            "_worker": {
+              "signature": "_worker(self)",
+              "decorators": [],
+              "line": 46,
+              "description": ""
+            },
+            "log_event": {
+              "signature": "log_event(self, agent: str, event_type: str, data: EventData)",
+              "decorators": [],
+              "line": 62,
+              "description": ""
+            },
+            "flush": {
+              "signature": "flush(self)",
+              "decorators": [],
+              "line": 83,
+              "description": ""
+            }
+          },
+          "class_attributes": {},
+          "line": 34,
+          "description": "A client class used to format and transmit agent execution events to a remote tracing server."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "atexit",
+        "dataclasses",
+        "logging",
+        "queue",
+        "requests",
+        "threading",
+        "time",
+        "typing"
+      ],
+      "purpose": "Implements the Python SDK's Tracer client and dataclasses for asynchronously logging agent events to the local server."
+    },
+    "sdk/python/agent_trace/integrations/autogen.py": {
+      "functions": {},
+      "classes": {
+        "AutoGenCallbackHandler": {
+          "bases": [],
+          "decorators": [],
+          "methods": {
+            "__init__": {
+              "signature": "__init__(self, tracer: Tracer)",
+              "decorators": [],
+              "line": 28,
+              "description": ""
+            },
+            "instrument_agent": {
+              "signature": "instrument_agent(self, agent: Any) -> None",
+              "decorators": [],
+              "line": 31,
+              "description": ""
+            },
+            "_process_message": {
+              "signature": "_process_message(self, agent_name: str, message: Union[Dict[str, Any], str]) -> None",
+              "decorators": [],
+              "line": 53,
+              "description": ""
+            }
+          },
+          "class_attributes": {},
+          "line": 9,
+          "description": "A handler class that intercepts AutoGen agent messages to log tracing events."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "purpose": "Provides an integration handler to instrument AutoGen conversational agents for automated tracing of reasoning and tool calls."
+    },
+    "sdk/python/agent_trace/integrations/crewai.py": {
+      "functions": {},
+      "classes": {
+        "CrewAIStepCallbackHandler": {
+          "bases": [],
+          "decorators": [],
+          "methods": {
+            "__init__": {
+              "signature": "__init__(self, tracer: Tracer, agent_name: str='crewai_agent')",
+              "decorators": [],
+              "line": 29,
+              "description": "Initializes the callback handler with an active tracer instance and an optional agent name."
+            },
+            "__call__": {
+              "signature": "__call__(self, step: Any) -> None",
+              "decorators": [],
+              "line": 33,
+              "description": "A callable interface allowing the instance to be directly assigned as a step callback in CrewAI."
+            },
+            "_process_step": {
+              "signature": "_process_step(self, step: Any) -> None",
+              "decorators": [],
+              "line": 46,
+              "description": "Evaluates a single agent step to extract and log reasoning strings, tool usages, and observations."
+            },
+            "_extract_field": {
+              "signature": "_extract_field(self, obj: Any, fields: List[str]) -> Any",
+              "decorators": [],
+              "line": 101,
+              "description": "Dynamically retrieves a specific field from various data structures like Pydantic models, dicts, or objects."
+            },
+            "_parse_tool_input": {
+              "signature": "_parse_tool_input(self, tool_input: Any) -> Dict[str, Any]",
+              "decorators": [],
+              "line": 120,
+              "description": "Parses and normalizes raw tool input arguments into a standard dictionary."
+            }
+          },
+          "class_attributes": {},
+          "line": 9,
+          "description": "A callback class that intercepts CrewAI agent steps and maps them to AgentTrace events like Reasoning, ToolCall, and ToolResult."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "logging",
+        "typing"
+      ],
+      "purpose": "Provides a callback handler to integrate AgentTrace with the CrewAI framework by mapping agent steps to telemetry events."
+    },
+    "sdk/python/agent_trace/integrations/langchain.py": {
+      "functions": {},
+      "classes": {
+        "AgentTraceCallbackHandler": {
+          "bases": [
+            "BaseCallbackHandler"
+          ],
+          "decorators": [],
+          "methods": {
+            "__init__": {
+              "signature": "__init__(self, tracer: Tracer, agent_name: str='langchain_agent')",
+              "decorators": [],
+              "line": 26,
+              "description": "Initializes the callback handler with a tracer instance and an agent name."
+            },
+            "on_llm_start": {
+              "signature": "on_llm_start(self, serialized: Dict[str, Any], prompts: List[str], *, run_id: UUID, parent_run_id: Optional[UUID]=None, tags: Optional[List[str]]=None, metadata: Optional[Dict[str, Any]]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 32,
+              "description": "Captures the start of an LLM generation step and stores the prompts by run ID for later reasoning association."
+            },
+            "on_chat_model_start": {
+              "signature": "on_chat_model_start(self, serialized: Dict[str, Any], messages: List[List[Any]], *, run_id: UUID, parent_run_id: Optional[UUID]=None, tags: Optional[List[str]]=None, metadata: Optional[Dict[str, Any]]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 46,
+              "description": "Captures chat messages as flattened text prompts to associate with reasoning upon generation completion."
+            },
+            "on_llm_end": {
+              "signature": "on_llm_end(self, response: LLMResult, *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 76,
+              "description": "Extracts the generated text and emits it as an AgentTrace reasoning event."
+            },
+            "on_llm_error": {
+              "signature": "on_llm_error(self, error: Union[Exception, KeyboardInterrupt], *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 102,
+              "description": "Cleans up stored prompt state if an LLM execution encounters an error."
+            },
+            "on_tool_start": {
+              "signature": "on_tool_start(self, serialized: Dict[str, Any], input_str: str, *, run_id: UUID, parent_run_id: Optional[UUID]=None, tags: Optional[List[str]]=None, metadata: Optional[Dict[str, Any]]=None, inputs: Optional[Dict[str, Any]]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 113,
+              "description": "Logs the beginning of a tool execution as a tool call event."
+            },
+            "on_tool_end": {
+              "signature": "on_tool_end(self, output: Any, *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 146,
+              "description": "Logs the completion of a tool execution along with its output."
+            },
+            "on_tool_error": {
+              "signature": "on_tool_error(self, error: Union[Exception, KeyboardInterrupt], *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 170,
+              "description": "Handles errors encountered during tool execution."
+            },
+            "on_chain_start": {
+              "signature": "on_chain_start(self, serialized: Dict[str, Any], inputs: Dict[str, Any], *, run_id: UUID, parent_run_id: Optional[UUID]=None, tags: Optional[List[str]]=None, metadata: Optional[Dict[str, Any]]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 194,
+              "description": "Records the start of a sequence of operations or chain."
+            },
+            "on_chain_end": {
+              "signature": "on_chain_end(self, outputs: Dict[str, Any], *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 211,
+              "description": "Records the successful completion of a chain operation."
+            },
+            "on_chain_error": {
+              "signature": "on_chain_error(self, error: Union[Exception, KeyboardInterrupt], *, run_id: UUID, parent_run_id: Optional[UUID]=None, **kwargs: Any) -> Any",
+              "decorators": [],
+              "line": 237,
+              "description": "Handles errors that occur within a chain execution."
+            }
+          },
+          "class_attributes": {},
+          "line": 20,
+          "description": "A callback handler class that integrates LangChain executions with the AgentTrace telemetry system."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "langchain_core",
+        "logging",
+        "typing",
+        "uuid"
+      ],
+      "purpose": "Provides a LangChain callback handler that intercepts LLM, tool, and chain events and maps them to standard AgentTrace payload models."
+    },
+    "sdk/python/agent_trace/integrations/__init__.py": {
+      "functions": {},
+      "classes": {},
+      "constants": {},
+      "internal_imports": [
+        "langchain"
+      ],
+      "external_imports": []
+    },
+    "sdk/python/tests/test_autogen.py": {
+      "functions": {
+        "extract_log_args": {
+          "signature": "extract_log_args(call)",
+          "decorators": [],
+          "line": 15,
+          "description": ""
+        },
+        "test_string_message_logs_reasoning": {
+          "signature": "test_string_message_logs_reasoning()",
+          "decorators": [],
+          "line": 24,
+          "description": ""
+        },
+        "test_dict_message_with_content": {
+          "signature": "test_dict_message_with_content()",
+          "decorators": [],
+          "line": 39,
+          "description": ""
+        },
+        "test_tool_result_message": {
+          "signature": "test_tool_result_message()",
+          "decorators": [],
+          "line": 55,
+          "description": ""
+        },
+        "test_tool_result_error_heuristic": {
+          "signature": "test_tool_result_error_heuristic()",
+          "decorators": [],
+          "line": 73,
+          "description": ""
+        },
+        "test_message_with_tool_calls": {
+          "signature": "test_message_with_tool_calls()",
+          "decorators": [],
+          "line": 91,
+          "description": ""
+        },
+        "test_message_with_function_call": {
+          "signature": "test_message_with_function_call()",
+          "decorators": [],
+          "line": 120,
+          "description": ""
+        },
+        "test_message_with_content_and_tool_call": {
+          "signature": "test_message_with_content_and_tool_call()",
+          "decorators": [],
+          "line": 144,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "pytest",
+        "unittest"
+      ],
+      "purpose": "Contains unit tests to verify the correct logging of reasoning, tool calls, and results by the AutoGen integration handler."
+    },
+    "sdk/python/tests/test_crewai.py": {
+      "functions": {
+        "test_string_step_logged_as_reasoning": {
+          "signature": "test_string_step_logged_as_reasoning()",
+          "decorators": [],
+          "line": 25,
+          "description": ""
+        },
+        "test_tuple_step_success": {
+          "signature": "test_tuple_step_success()",
+          "decorators": [],
+          "line": 40,
+          "description": ""
+        },
+        "test_tuple_step_error_heuristic": {
+          "signature": "test_tuple_step_error_heuristic()",
+          "decorators": [],
+          "line": 76,
+          "description": ""
+        },
+        "test_dict_step": {
+          "signature": "test_dict_step()",
+          "decorators": [],
+          "line": 101,
+          "description": ""
+        },
+        "test_list_of_steps": {
+          "signature": "test_list_of_steps()",
+          "decorators": [],
+          "line": 125,
+          "description": ""
+        }
+      },
+      "classes": {
+        "MockAgentAction": {
+          "bases": [],
+          "decorators": [],
+          "methods": {
+            "__init__": {
+              "signature": "__init__(self, log=None, tool=None, tool_input=None, text=None, result=None)",
+              "decorators": [],
+              "line": 17,
+              "description": "Initializes the mocked action with specific attributes for logs, tools, inputs, and results."
+            }
+          },
+          "class_attributes": {},
+          "line": 15,
+          "description": "A mock data structure used to simulate the properties of an AgentAction from LangChain or CrewAI."
+        }
+      },
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "pytest",
+        "unittest"
+      ],
+      "purpose": "Contains unit tests to verify the CrewAI callback handler correctly interprets and logs various agent step formats."
+    },
+    "sdk/python/tests/test_langchain.py": {
+      "functions": {
+        "test_llm_reasoning_standard": {
+          "signature": "test_llm_reasoning_standard()",
+          "decorators": [],
+          "line": 15,
+          "description": "Tests that standard LLM completions correctly log a reasoning event."
+        },
+        "test_chat_model_reasoning": {
+          "signature": "test_chat_model_reasoning()",
+          "decorators": [],
+          "line": 41,
+          "description": "Tests that chat model interactions correctly map multimodal and text messages to a reasoning event."
+        },
+        "test_llm_error_cleans_up": {
+          "signature": "test_llm_error_cleans_up()",
+          "decorators": [],
+          "line": 71,
+          "description": "Ensures that LLM errors clean up intermediate stored prompt states without logging an event."
+        },
+        "test_tool_execution": {
+          "signature": "test_tool_execution()",
+          "decorators": [],
+          "line": 83,
+          "description": "Verifies that successful tool executions log both start and end events."
+        },
+        "test_tool_error": {
+          "signature": "test_tool_error()",
+          "decorators": [],
+          "line": 115,
+          "description": "Tests that tool execution errors are correctly intercepted and logged."
+        },
+        "test_chain_execution": {
+          "signature": "test_chain_execution()",
+          "decorators": [],
+          "line": 139,
+          "description": "Verifies logging for the start and end of chain executions."
+        },
+        "test_chain_error_cleans_up": {
+          "signature": "test_chain_error_cleans_up()",
+          "decorators": [],
+          "line": 164,
+          "description": "Ensures that errors occurring within chains clean up resources appropriately."
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "pytest",
+        "unittest",
+        "uuid"
+      ],
+      "purpose": "Contains unit tests verifying the proper interception and formatting of LangChain events by the AgentTrace callback handler."
+    },
+    "sdk/python/tests/test_models.py": {
+      "functions": {
+        "test_reasoning_data_serialization": {
+          "signature": "test_reasoning_data_serialization()",
+          "decorators": [],
+          "line": 13,
+          "description": ""
+        },
+        "test_tool_call_data_serialization": {
+          "signature": "test_tool_call_data_serialization()",
+          "decorators": [],
+          "line": 22,
+          "description": ""
+        },
+        "test_tool_result_data_serialization": {
+          "signature": "test_tool_result_data_serialization()",
+          "decorators": [],
+          "line": 31,
+          "description": ""
+        },
+        "test_state_change_data_serialization": {
+          "signature": "test_state_change_data_serialization()",
+          "decorators": [],
+          "line": 41,
+          "description": ""
+        },
+        "test_agent_event_serialization": {
+          "signature": "test_agent_event_serialization()",
+          "decorators": [],
+          "line": 55,
+          "description": ""
+        },
+        "test_tracer_async_enqueueing": {
+          "signature": "test_tracer_async_enqueueing(mock_post)",
+          "decorators": [
+            "patch('requests.post')"
+          ],
+          "line": 74,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "pytest",
+        "unittest"
+      ],
+      "purpose": "Provides unit tests specifically validating the dictionary serialization logic of various agent event data models."
+    },
+    "sdk/python/tests/test_tracer.py": {
+      "functions": {
+        "test_reasoning_data_serialization": {
+          "signature": "test_reasoning_data_serialization()",
+          "decorators": [],
+          "line": 16,
+          "description": ""
+        },
+        "test_tool_call_data_serialization": {
+          "signature": "test_tool_call_data_serialization()",
+          "decorators": [],
+          "line": 22,
+          "description": ""
+        },
+        "test_tool_result_data_serialization": {
+          "signature": "test_tool_result_data_serialization()",
+          "decorators": [],
+          "line": 28,
+          "description": ""
+        },
+        "test_state_change_data_serialization": {
+          "signature": "test_state_change_data_serialization()",
+          "decorators": [],
+          "line": 38,
+          "description": ""
+        },
+        "test_agent_event_serialization": {
+          "signature": "test_agent_event_serialization()",
+          "decorators": [],
+          "line": 52,
+          "description": ""
+        },
+        "test_tracer_enqueue_and_flush": {
+          "signature": "test_tracer_enqueue_and_flush()",
+          "decorators": [],
+          "line": 69,
+          "description": ""
+        },
+        "test_tracer_handles_post_error": {
+          "signature": "test_tracer_handles_post_error()",
+          "decorators": [],
+          "line": 95,
+          "description": ""
+        },
+        "test_tracer_queue_state": {
+          "signature": "test_tracer_queue_state()",
+          "decorators": [],
+          "line": 113,
+          "description": ""
+        },
+        "test_tracer_dict_data": {
+          "signature": "test_tracer_dict_data()",
+          "decorators": [],
+          "line": 138,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "pytest",
+        "time",
+        "unittest"
+      ],
+      "purpose": "Tests the background functionality of the Tracer class, including event queueing, thread flushing, and payload formatting."
+    },
+    "sdk/python/tests/__init__.py": {
+      "functions": {
+        "test_reasoning_data_serialization": {
+          "signature": "test_reasoning_data_serialization()",
+          "decorators": [],
+          "line": 17,
+          "description": ""
+        },
+        "test_tool_call_data_serialization": {
+          "signature": "test_tool_call_data_serialization()",
+          "decorators": [],
+          "line": 28,
+          "description": ""
+        },
+        "test_tool_result_data_serialization": {
+          "signature": "test_tool_result_data_serialization()",
+          "decorators": [],
+          "line": 38,
+          "description": ""
+        },
+        "test_state_change_data_serialization": {
+          "signature": "test_state_change_data_serialization()",
+          "decorators": [],
+          "line": 52,
+          "description": ""
+        },
+        "test_agent_event_serialization": {
+          "signature": "test_agent_event_serialization()",
+          "decorators": [],
+          "line": 70,
+          "description": ""
+        },
+        "test_tracer_async_enqueueing": {
+          "signature": "test_tracer_async_enqueueing(mock_post)",
+          "decorators": [
+            "patch('agent_trace.requests.post')"
+          ],
+          "line": 95,
+          "description": ""
+        },
+        "test_tracer_error_handling": {
+          "signature": "test_tracer_error_handling(mock_post)",
+          "decorators": [
+            "patch('agent_trace.requests.post')"
+          ],
+          "line": 131,
+          "description": ""
+        }
+      },
+      "classes": {},
+      "constants": {},
+      "internal_imports": [],
+      "external_imports": [
+        "agent_trace",
+        "json",
+        "pytest",
+        "requests",
+        "unittest"
+      ],
+      "purpose": "Contains unit tests for the Python SDK, verifying model serialization and asynchronous tracer behavior."
+    },
+    "server/jest.config.js": {
+      "type": "non-python",
+      "extension": ".js",
+      "size_bytes": 566,
+      "description": "",
+      "purpose": "Configures the Jest testing framework to run TypeScript tests in a Node.js environment."
+    },
+    "server/package-lock.json": {
+      "type": "non-python",
+      "extension": ".json",
+      "size_bytes": 211676,
+      "description": "",
+      "purpose": "Locks server dependencies to specific versions to ensure reproducible builds for the Express backend."
+    },
+    "server/package.json": {
+      "type": "non-python",
+      "extension": ".json",
+      "size_bytes": 781,
+      "description": "",
+      "purpose": "Defines the metadata, scripts, and npm dependencies for the AgentTrace server."
+    },
+    "server/tsconfig.json": {
+      "type": "non-python",
+      "extension": ".json",
+      "size_bytes": 261,
+      "description": ""
+    },
+    "server/src/db.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 5782,
+      "description": "",
+      "purpose": "Initializes and manages the SQLite database connection, schema, and full-text search triggers for storing agent trace events."
+    },
+    "server/src/index.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 7102,
+      "description": "",
+      "purpose": "Sets up the Express server API endpoints for ingesting, querying, and searching agent trace events."
+    },
+    "server/src/schema.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 2193,
+      "description": "",
+      "purpose": "Defines Zod validation schemas and exports inferred TypeScript types for agent trace events and API payloads."
+    },
+    "server/tests/server.test.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 11698,
+      "description": "",
+      "purpose": "Contains integration tests for the Express server API endpoints using Supertest and an in-memory SQLite database."
+    }
+  }
+}
