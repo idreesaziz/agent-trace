@@ -7,7 +7,7 @@
     "TypeScript",
     "Python"
   ],
-  "current_phase": "Implement backend and frontend capabilities for full-text search and trace export/import",
+  "current_phase": "Add a unified CLI tool to seamlessly serve the AgentTrace server and frontend",
   "maturity_level": "early",
   "completed_milestones": [],
   "planned_next_steps": [
@@ -186,6 +186,18 @@
         "frontend/src/pages/Dashboard.tsx"
       ],
       "requests_used": 20
+    },
+    {
+      "date": "2026-03-22",
+      "summary": "Add a unified CLI tool to seamlessly serve the AgentTrace server and frontend",
+      "files_changed": [
+        "server/src/index.ts",
+        "server/tests/server.test.ts",
+        "server/src/cli.ts",
+        "server/package.json",
+        "README.md"
+      ],
+      "requests_used": 22
     }
   ],
   "open_questions": [],

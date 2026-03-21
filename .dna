@@ -63,9 +63,9 @@
     "README.md": {
       "type": "non-python",
       "extension": ".md",
-      "size_bytes": 6351,
+      "size_bytes": 7733,
       "description": "",
-      "purpose": "Provides the primary documentation, feature overview, and getting-started guide for the AgentTrace project."
+      "purpose": "Provides high-level project documentation, features, and folder structure for the AgentTrace application."
     },
     "frontend/index.html": {
       "type": "non-python",
@@ -1089,15 +1089,22 @@
     "server/package.json": {
       "type": "non-python",
       "extension": ".json",
-      "size_bytes": 781,
+      "size_bytes": 898,
       "description": "",
-      "purpose": "Defines the metadata, scripts, and npm dependencies for the AgentTrace server."
+      "purpose": "Configures dependencies, executable binaries, and npm scripts for the AgentTrace server module."
     },
     "server/tsconfig.json": {
       "type": "non-python",
       "extension": ".json",
       "size_bytes": 261,
       "description": ""
+    },
+    "server/src/cli.ts": {
+      "type": "non-python",
+      "extension": ".ts",
+      "size_bytes": 906,
+      "description": "",
+      "purpose": "Defines the command-line interface for starting the AgentTrace server."
     },
     "server/src/db.ts": {
       "type": "non-python",
@@ -1109,9 +1116,9 @@
     "server/src/index.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 7102,
+      "size_bytes": 6369,
       "description": "",
-      "purpose": "Sets up the Express server API endpoints for ingesting, querying, and searching agent trace events."
+      "purpose": "Sets up the Express server API endpoints for ingesting, bulk-inserting, and searching agent trace events."
     },
     "server/src/schema.ts": {
       "type": "non-python",
@@ -1123,9 +1130,9 @@
     "server/tests/server.test.ts": {
       "type": "non-python",
       "extension": ".ts",
-      "size_bytes": 11698,
+      "size_bytes": 4529,
       "description": "",
-      "purpose": "Contains integration tests for the Express server API endpoints using Supertest and an in-memory SQLite database."
+      "purpose": "Executes integration tests for the server's API endpoints using Supertest and a mocked in-memory SQLite database."
     }
   }
 }
