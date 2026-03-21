@@ -33,38 +33,14 @@ export async function fetchEvents(filters?: FilterOptions): Promise<AgentEvent[]
   }
   
   const queryString = params.toString() ? `?${params.toString()}` : '';
-  const response = await fetch(`/api/events${queryString}`);
+  const endpoint = filters?.search ? '/api/search' : '/api/events';
+  const response = await fetch(`${endpoint}${queryString}`);
   
   if (!response.ok) {
     throw new Error(`Failed to fetch events: ${response.status} ${response.statusText}`);
   }
   
-  let events: AgentEvent[] = await response.json();
-  
-  // Client-side fallback filtering in case backend doesn't support query parameters yet
-  if (filters?.eventType && filters.eventType !== 'all') {
-    events = events.filter(e => e.event_type === filters.eventType);
-  }
-  if (filters?.runId) {
-    events = events.filter(e => e.run_id === filters.runId);
-  }
-  if (filters?.search) {
-    const term = filters.search.toLowerCase();
-    events = events.filter(e => {
-      if (e.event_type.toLowerCase().includes(term)) return true;
-      if (e.agent && e.agent.toLowerCase().includes(term)) return true;
-      if (e.project_name && e.project_name.toLowerCase().includes(term)) return true;
-      
-      try {
-        const dataStr = JSON.stringify(e.data).toLowerCase();
-        if (dataStr.includes(term)) return true;
-      } catch (err) {
-        // Ignore serialization errors for malformed event data
-      }
-      
-      return false;
-    });
-  }
+  const events: AgentEvent[] = await response.json();
   
   return events;
 }
@@ -106,13 +82,8 @@ export async function fetchAgentRuns(filters?: FilterOptions): Promise<AgentRun[
  * Export events to a JSON file format.
  */
 export async function exportEvents(runId?: string): Promise<AgentEvent[]> {
-  const params = new URLSearchParams();
-  if (runId) {
-    params.append('run_id', runId);
-  }
-  
-  const queryString = params.toString() ? `?${params.toString()}` : '';
-  const response = await fetch(`/api/export${queryString}`);
+  const endpoint = runId ? `/api/export/${runId}` : '/api/export';
+  const response = await fetch(endpoint);
   
   if (!response.ok) {
     throw new Error(`Failed to export events: ${response.status} ${response.statusText}`);

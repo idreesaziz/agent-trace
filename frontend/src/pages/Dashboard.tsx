@@ -216,8 +216,8 @@ export default function Dashboard() {
                       </div>
                     </div>
                     
-                    <div className="flex-shrink-0 ml-4 text-gray-400 group-hover:text-blue-600 transition-colors">
-                      <ArrowRight className="w-6 h-6" />
+                    <div className="flex-shrink-0 ml-4 text-gray-400 group-hover:text-blue-500 transition-colors">
+                      <ArrowRight className="w-5 h-5" />
                     </div>
                   </div>
                 </Link>
