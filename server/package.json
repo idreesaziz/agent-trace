@@ -3,14 +3,18 @@
   "version": "0.1.0",
   "description": "Local server and UI for AgentTrace",
   "main": "dist/index.js",
+  "bin": {
+    "agent-trace": "dist/cli.js"
+  },
   "scripts": {
     "dev": "ts-node src/index.ts",
-    "build": "tsc",
+    "build": "npm run build --prefix ../frontend && tsc",
     "start": "node dist/index.js",
     "test": "jest"
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
+    "commander": "^12.0.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "zod": "^3.22.4"
